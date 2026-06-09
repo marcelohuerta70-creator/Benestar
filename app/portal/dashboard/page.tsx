@@ -49,7 +49,12 @@ export default function PortalDashboard() {
   const [consultas, setConsultas] = useState<Consulta[]>([])
   const [notas, setNotas] = useState<NotaClinica[]>([])
   const [citas, setCitas] = useState<Cita[]>([])
-  const [minutaExpanded, setMinutaExpanded] = useState(false)
+  const [minutaDiasExpandidos, setMinutaDiasExpandidos] = useState<Record<string, boolean>>(() => {
+    const diasOrden = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+    const hoyIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1
+    const hoyDia = diasOrden[hoyIdx]
+    return { lunes: false, martes: false, miercoles: false, jueves: false, viernes: false, sabado: false, domingo: false, [hoyDia]: true }
+  })
   const [visibles, setVisibles] = useState<MedicionesVisibles>({
     peso: true,
     cintura: true,
@@ -83,7 +88,7 @@ export default function PortalDashboard() {
     setBioimpedancia(bioimpedanciaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
     setConsultas(consultasStorage.getByPaciente(session.paciente_id))
     setNotas(notasStorage.getByPaciente(session.paciente_id).filter(n => n.tipo === 'paciente').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
-    setCitas(citasStorage.getAll().filter(c => c.paciente_id === session.paciente_id && new Date(c.fecha) >= new Date()).sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()))
+    setCitas(citasStorage.getAll().filter(c => c.paciente_id === session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
   }, [session, loading])
 
   if (loading || !paciente) {
@@ -119,7 +124,7 @@ export default function PortalDashboard() {
 
   const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
   const comidas = ['desayuno', 'colacion_am', 'almuerzo', 'colacion_pm', 'cena', 'cena_tardia']
-  const minutaDesglosada = minuta?.estructura || {}
+  const minutaDesglosada = (minuta?.estructura || {}) as any
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-neutral-50 pb-20">
@@ -161,35 +166,37 @@ export default function PortalDashboard() {
             </Card>
 
             {/* Nota del control más reciente */}
-            {consultas.length > 0 && (
+            {consultas.length > 0 && consultas[0].nota_para_paciente && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Nota del control - {formatFechaCorta(consultas[0].fecha)}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
-                    {consultas[0].observaciones_clinicas || consultas[0].cambios_observados || 'Sin notas en este control'}
+                    {consultas[0].nota_para_paciente}
                   </p>
                 </CardContent>
               </Card>
             )}
 
-            {/* Próximos controles */}
+            {/* Controles */}
             {citas.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Próximos controles</CardTitle>
+                  <CardTitle className="text-lg">Tus controles</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {citas.slice(0, 3).map((cita, i) => (
-                    <div key={i} className="p-3 rounded-lg border border-neutral-200 bg-white">
+                  {citas.slice(0, 5).map((cita, i) => (
+                    <div key={i} className={`p-3 rounded-lg border ${cita.estado === 'programada' ? 'border-neutral-200 bg-white' : cita.estado === 'realizada' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-neutral-900 text-sm">{formatFechaCorta(cita.fecha)}</p>
-                          <p className="text-xs text-neutral-500 mt-0.5">📅 {cita.hora}</p>
-                          {cita.motivo && <p className="text-xs text-neutral-600 mt-1">{cita.motivo}</p>}
+                          <p className="font-medium text-sm text-neutral-900">{formatFechaCorta(cita.fecha)}</p>
+                          <p className="text-xs mt-0.5 text-neutral-500">📅 {cita.hora}</p>
+                          {cita.motivo && <p className="text-xs mt-1 text-neutral-600">{cita.motivo}</p>}
                         </div>
-                        <Badge variant="outline">Programada</Badge>
+                        <Badge variant={cita.estado === 'programada' ? 'outline' : cita.estado === 'realizada' ? 'default' : 'secondary'} className={cita.estado === 'realizada' ? 'bg-green-100 text-green-700' : cita.estado === 'cancelada' ? 'bg-red-100 text-red-700' : ''}>
+                          {cita.estado === 'programada' ? 'Programada' : cita.estado === 'realizada' ? 'Realizada' : 'Cancelada'}
+                        </Badge>
                       </div>
                     </div>
                   ))}
@@ -198,23 +205,6 @@ export default function PortalDashboard() {
             )}
 
 
-            {/* Últimas mediciones */}
-            {ultima && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Tu último control</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-neutral-500 mb-4">{formatFechaCorta(ultima.fecha)}</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <MedicionCard label="Peso" valor={ultima.peso_kg} unidad="kg" cambio={primera && primera !== ultima ? { value: Math.abs(ultima.peso_kg - primera.peso_kg).toFixed(1), sign: ultima.peso_kg < primera.peso_kg ? '−' : '+', dir: ultima.peso_kg < primera.peso_kg ? 'down' : 'up' } : undefined} incluirEnGrafico={true} />
-                    <MedicionCard label="IMC" valor={ultima.imc} unidad="" cambio={primera && primera !== ultima ? { value: Math.abs(ultima.imc - primera.imc).toFixed(1), sign: ultima.imc < primera.imc ? '−' : '+', dir: ultima.imc < primera.imc ? 'down' : 'up' } : undefined} incluirEnGrafico={true} />
-                    <MedicionCard label="Cintura" valor={ultima.perimetro_cintura_cm} unidad="cm" cambio={primera && primera !== ultima && primera.perimetro_cintura_cm ? { value: Math.abs(ultima.perimetro_cintura_cm! - primera.perimetro_cintura_cm!).toFixed(1), sign: ultima.perimetro_cintura_cm! < primera.perimetro_cintura_cm! ? '−' : '+', dir: ultima.perimetro_cintura_cm! < primera.perimetro_cintura_cm! ? 'down' : 'up' } : undefined} incluirEnGrafico={true} />
-                    <MedicionCard label="Cadera" valor={ultima.perimetro_cadera_cm} unidad="cm" incluirEnGrafico={false} />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         )}
 
@@ -228,26 +218,63 @@ export default function PortalDashboard() {
                     <CardTitle className="text-lg">Tu minuta actual</CardTitle>
                     <p className="text-xs text-neutral-500 mt-2">Válida desde {formatFechaCorta(minuta.fecha_inicio)}</p>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-2">
                     {diasSemana.map(dia => (
-                      <div key={dia}>
-                        <p className="font-medium text-sm text-neutral-900 mb-3 capitalize border-b border-neutral-200 pb-2">{dia.charAt(0).toUpperCase() + dia.slice(1)}</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {comidas.map(comida => {
-                            const label = comida === 'desayuno' ? 'Desayuno' : comida === 'colacion_am' ? 'Colación AM' : comida === 'almuerzo' ? 'Almuerzo' : comida === 'colacion_pm' ? 'Colación PM' : comida === 'cena' ? 'Cena' : 'Once'
-                            const contenido = (minutaDesglosada as any)?.[dia]?.[comida] || '—'
-                            return (
-                              <div key={comida} className="p-3 rounded-lg bg-neutral-50 border border-neutral-200 hover:bg-neutral-100 transition-colors">
-                                <p className="text-xs font-medium text-neutral-600 mb-2">{label}</p>
-                                <p className="text-sm text-neutral-700 line-clamp-3">{contenido}</p>
-                              </div>
-                            )
-                          })}
-                        </div>
+                      <div key={dia} className="border border-neutral-200 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setMinutaDiasExpandidos(prev => ({ ...prev, [dia]: !prev[dia] }))}
+                          className="w-full flex items-center justify-between p-3 bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                        >
+                          <p className="font-medium text-sm text-neutral-900 capitalize">{dia.charAt(0).toUpperCase() + dia.slice(1)}</p>
+                          <ChevronDown className={`h-4 w-4 text-neutral-500 transition-transform ${minutaDiasExpandidos[dia] ? 'rotate-180' : ''}`} />
+                        </button>
+                        {minutaDiasExpandidos[dia] && (
+                          <div className="p-3 bg-white space-y-3 border-t border-neutral-200">
+                            <div className="grid grid-cols-2 gap-3">
+                              {comidas.map(comida => {
+                                const label = comida === 'desayuno' ? 'Desayuno' : comida === 'colacion_am' ? 'Colación AM' : comida === 'almuerzo' ? 'Almuerzo' : comida === 'colacion_pm' ? 'Colación PM' : comida === 'cena' ? 'Cena' : 'Once'
+                                const contenido = (minutaDesglosada as any)?.[dia]?.[comida] || '—'
+                                return (
+                                  <div key={comida} className="p-3 rounded-lg bg-neutral-50 border border-neutral-200">
+                                    <p className="text-xs font-medium text-neutral-600 mb-2">{label}</p>
+                                    <p className="text-sm text-neutral-700">{contenido}</p>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </CardContent>
                 </Card>
+
+                {/* Suplementación */}
+                {(minutaDesglosada.suplementacion || minutaDesglosada.indicaciones) && (
+                  <>
+                    {minutaDesglosada.suplementacion && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">Suplementación</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">{minutaDesglosada.suplementacion}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {minutaDesglosada.indicaciones && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">Indicaciones adicionales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">{minutaDesglosada.indicaciones}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                )}
               </>
             ) : (
               <Card>
@@ -262,6 +289,68 @@ export default function PortalDashboard() {
         {/* MEDICIONES */}
         {tab === 'mediciones' && (
           <div className="space-y-6">
+            {/* Comparación Primer vs Último Control */}
+            {primera && ultima && primera !== ultima && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Tu progreso</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Primer control */}
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-3 font-medium">Primer control - {formatFechaCorta(primera.fecha)}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 rounded-lg border border-neutral-200 bg-neutral-50">
+                        <p className="text-xs text-neutral-600 mb-1">Peso</p>
+                        <p className="text-lg font-semibold text-neutral-900">{primera.peso_kg.toFixed(1)} <span className="text-sm text-neutral-500">kg</span></p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-neutral-200 bg-neutral-50">
+                        <p className="text-xs text-neutral-600 mb-1">IMC</p>
+                        <p className="text-lg font-semibold text-neutral-900">{primera.imc.toFixed(1)}</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-neutral-200 bg-neutral-50">
+                        <p className="text-xs text-neutral-600 mb-1">Cintura</p>
+                        <p className="text-lg font-semibold text-neutral-900">{(primera.perimetro_cintura_cm || 0).toFixed(1)} <span className="text-sm text-neutral-500">cm</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Último control */}
+                  <div>
+                    <p className="text-xs text-neutral-500 mb-3 font-medium">Último control - {formatFechaCorta(ultima.fecha)}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Peso */}
+                      <div className={`p-3 rounded-lg border ${ultima.peso_kg < primera.peso_kg ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                        <p className="text-xs text-neutral-600 mb-1">Peso</p>
+                        <p className="text-lg font-semibold text-neutral-900">{ultima.peso_kg.toFixed(1)} <span className="text-sm text-neutral-500">kg</span></p>
+                        <p className={`text-xs font-medium mt-2 ${ultima.peso_kg < primera.peso_kg ? 'text-green-700' : 'text-red-700'}`}>
+                          {ultima.peso_kg < primera.peso_kg ? '↓' : '↑'} {Math.abs(((ultima.peso_kg - primera.peso_kg) / primera.peso_kg) * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                      {/* IMC */}
+                      <div className={`p-3 rounded-lg border ${ultima.imc < primera.imc ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                        <p className="text-xs text-neutral-600 mb-1">IMC</p>
+                        <p className="text-lg font-semibold text-neutral-900">{ultima.imc.toFixed(1)}</p>
+                        <p className={`text-xs font-medium mt-2 ${ultima.imc < primera.imc ? 'text-green-700' : 'text-red-700'}`}>
+                          {ultima.imc < primera.imc ? '↓' : '↑'} {Math.abs(((ultima.imc - primera.imc) / primera.imc) * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                      {/* Cintura */}
+                      <div className={`p-3 rounded-lg border ${ultima.perimetro_cintura_cm && primera.perimetro_cintura_cm && ultima.perimetro_cintura_cm < primera.perimetro_cintura_cm ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                        <p className="text-xs text-neutral-600 mb-1">Cintura</p>
+                        <p className="text-lg font-semibold text-neutral-900">{(ultima.perimetro_cintura_cm || 0).toFixed(1)} <span className="text-sm text-neutral-500">cm</span></p>
+                        {ultima.perimetro_cintura_cm && primera.perimetro_cintura_cm && (
+                          <p className={`text-xs font-medium mt-2 ${ultima.perimetro_cintura_cm < primera.perimetro_cintura_cm ? 'text-green-700' : 'text-red-700'}`}>
+                            {ultima.perimetro_cintura_cm < primera.perimetro_cintura_cm ? '↓' : '↑'} {Math.abs(((ultima.perimetro_cintura_cm - primera.perimetro_cintura_cm) / primera.perimetro_cintura_cm) * 100).toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* ANTROPOMETRÍA - Gráfico y expandibles */}
             {chartData.length > 1 && (
               <>

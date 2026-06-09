@@ -1,0 +1,36 @@
+{
+  "name": "Benestar - Portal de Salud",
+  "short_name": "Benestar",
+  "description": "Plataforma integral para profesionales de salud y pacientes",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["health", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Portal Profesional",
+      "short_name": "Profesional",
+      "description": "Accede al portal de profesionales",
+      "url": "/login",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Portal Paciente",
+      "short_name": "Paciente",
+      "description": "Accede al portal de pacientes",
+      "url": "/portal/login",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
