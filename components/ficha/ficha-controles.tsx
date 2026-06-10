@@ -241,69 +241,71 @@ export function FichaControles({ pacienteId }: Props) {
         const talla = parseFloat(formAntrop.talla_cm)
         const imc = calcularIMC(peso, talla)
 
-        const antropData = {
+        const antropData: any = {
           paciente_id: pacienteId,
           profesional_id: user.id,
-          consulta_id: editando?.id || null,
           fecha: form.fecha,
           peso_kg: peso,
           talla_cm: talla,
           imc,
-          perimetro_cintura_cm: n(formAntrop.perimetro_cintura_cm),
-          perimetro_cadera_cm: n(formAntrop.perimetro_cadera_cm),
-          per_brazo_relajado_cm: n(formAntrop.per_brazo_relajado),
-          per_brazo_contraido_cm: n(formAntrop.per_brazo_contraido),
-          perimetro_torax_cm: n(formAntrop.per_torax),
-          perimetro_abdomen_cm: n(formAntrop.per_abdomen),
-          perimetro_muslo_cm: n(formAntrop.per_muslo),
-          perimetro_pantorrilla_cm: n(formAntrop.per_pantorrilla),
-          pliegue_tricipital_mm: n(formAntrop.pliegue_tricipital),
-          pliegue_bicipital_mm: n(formAntrop.pliegue_bicipital),
-          pliegue_subescapular_mm: n(formAntrop.pliegue_subescapular),
-          pliegue_suprailiaco_mm: n(formAntrop.pliegue_suprailiaco),
-          pliegue_abdominal_mm: n(formAntrop.pliegue_abdominal),
-          pliegue_muslo_mm: n(formAntrop.pliegue_muslo),
-          pliegue_pantorrilla_mm: n(formAntrop.pliegue_pantorrilla),
-          envergadura_cm: n(formAntrop.envergadura),
-          altura_sentado_cm: n(formAntrop.altura_sentado),
         }
+
+        // Agregar campos opcionales solo si tienen valor
+        if (formAntrop.perimetro_cintura_cm) antropData.perimetro_cintura_cm = n(formAntrop.perimetro_cintura_cm)
+        if (formAntrop.perimetro_cadera_cm) antropData.perimetro_cadera_cm = n(formAntrop.perimetro_cadera_cm)
+        if (formAntrop.per_brazo_relajado) antropData.per_brazo_relajado_cm = n(formAntrop.per_brazo_relajado)
+        if (formAntrop.per_brazo_contraido) antropData.per_brazo_contraido_cm = n(formAntrop.per_brazo_contraido)
+        if (formAntrop.per_torax) antropData.perimetro_torax_cm = n(formAntrop.per_torax)
+        if (formAntrop.per_abdomen) antropData.perimetro_abdomen_cm = n(formAntrop.per_abdomen)
+        if (formAntrop.per_muslo) antropData.perimetro_muslo_cm = n(formAntrop.per_muslo)
+        if (formAntrop.per_pantorrilla) antropData.perimetro_pantorrilla_cm = n(formAntrop.per_pantorrilla)
+        if (formAntrop.pliegue_tricipital) antropData.pliegue_tricipital_mm = n(formAntrop.pliegue_tricipital)
+        if (formAntrop.pliegue_bicipital) antropData.pliegue_bicipital_mm = n(formAntrop.pliegue_bicipital)
+        if (formAntrop.pliegue_subescapular) antropData.pliegue_subescapular_mm = n(formAntrop.pliegue_subescapular)
+        if (formAntrop.pliegue_suprailiaco) antropData.pliegue_suprailiaco_mm = n(formAntrop.pliegue_suprailiaco)
+        if (formAntrop.pliegue_abdominal) antropData.pliegue_abdominal_mm = n(formAntrop.pliegue_abdominal)
+        if (formAntrop.pliegue_muslo) antropData.pliegue_muslo_mm = n(formAntrop.pliegue_muslo)
+        if (formAntrop.pliegue_pantorrilla) antropData.pliegue_pantorrilla_mm = n(formAntrop.pliegue_pantorrilla)
+        if (formAntrop.envergadura) antropData.envergadura_cm = n(formAntrop.envergadura)
+        if (formAntrop.altura_sentado) antropData.altura_sentado_cm = n(formAntrop.altura_sentado)
 
         const { error: antropError } = await supabase.from('mediciones_antropometria').insert(antropData)
         if (antropError) {
           console.error('[Insert Antrop Error]', antropError)
-          alert('Error al guardar mediciones: ' + antropError.message)
+          alert('Error antrop: ' + antropError.message)
         }
       }
 
       // Guardar bioimpedancia si se registró
       if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
-        const bioData = {
+        const bioData: any = {
           paciente_id: pacienteId,
           profesional_id: user.id,
-          consulta_id: editando?.id || null,
           fecha: form.fecha,
-          masa_grasa_kg: n(formBio.masa_grasa_kg),
-          masa_grasa_pct: n(formBio.masa_grasa_pct),
-          masa_magra_kg: n(formBio.masa_magra_kg),
-          masa_libre_grasa_kg: n(formBio.masa_libre_grasa),
-          agua_corporal_lt: n(formBio.agua_corporal_lt),
-          agua_corporal_pct: n(formBio.agua_corporal_pct),
-          grasa_visceral: n(formBio.grasa_visceral),
-          proteina_corporal_kg: n(formBio.proteina_corporal),
-          masa_osea_kg: n(formBio.masa_osea),
-          metabolismo_basal_kcal: n(formBio.metabolismo_basal_kcal) ? Math.round(n(formBio.metabolismo_basal_kcal) || 0) : null,
-          edad_metabolica: n(formBio.edad_metabolica) ? Math.round(n(formBio.edad_metabolica) || 0) : null,
-          seg_brazo_izq: n(formBio.seg_brazo_izq),
-          seg_brazo_der: n(formBio.seg_brazo_der),
-          seg_tronco: n(formBio.seg_tronco),
-          seg_pierna_izq: n(formBio.seg_pierna_izq),
-          seg_pierna_der: n(formBio.seg_pierna_der),
         }
+
+        // Agregar campos opcionales solo si tienen valor
+        if (formBio.masa_grasa_kg) bioData.masa_grasa_kg = n(formBio.masa_grasa_kg)
+        if (formBio.masa_grasa_pct) bioData.masa_grasa_pct = n(formBio.masa_grasa_pct)
+        if (formBio.masa_magra_kg) bioData.masa_magra_kg = n(formBio.masa_magra_kg)
+        if (formBio.masa_libre_grasa) bioData.masa_libre_grasa_kg = n(formBio.masa_libre_grasa)
+        if (formBio.agua_corporal_lt) bioData.agua_corporal_lt = n(formBio.agua_corporal_lt)
+        if (formBio.agua_corporal_pct) bioData.agua_corporal_pct = n(formBio.agua_corporal_pct)
+        if (formBio.grasa_visceral) bioData.grasa_visceral = n(formBio.grasa_visceral)
+        if (formBio.proteina_corporal) bioData.proteina_corporal_kg = n(formBio.proteina_corporal)
+        if (formBio.masa_osea) bioData.masa_osea_kg = n(formBio.masa_osea)
+        if (formBio.metabolismo_basal_kcal) bioData.metabolismo_basal_kcal = Math.round(n(formBio.metabolismo_basal_kcal) || 0)
+        if (formBio.edad_metabolica) bioData.edad_metabolica = Math.round(n(formBio.edad_metabolica) || 0)
+        if (formBio.seg_brazo_izq) bioData.seg_brazo_izq = n(formBio.seg_brazo_izq)
+        if (formBio.seg_brazo_der) bioData.seg_brazo_der = n(formBio.seg_brazo_der)
+        if (formBio.seg_tronco) bioData.seg_tronco = n(formBio.seg_tronco)
+        if (formBio.seg_pierna_izq) bioData.seg_pierna_izq = n(formBio.seg_pierna_izq)
+        if (formBio.seg_pierna_der) bioData.seg_pierna_der = n(formBio.seg_pierna_der)
 
         const { error: bioError } = await supabase.from('mediciones_bioimpedancia').insert(bioData)
         if (bioError) {
           console.error('[Insert Bio Error]', bioError)
-          alert('Error al guardar bioimpedancia: ' + bioError.message)
+          alert('Error bio: ' + bioError.message)
         }
       }
 
