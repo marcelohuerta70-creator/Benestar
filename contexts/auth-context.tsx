@@ -66,6 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userId = authData.user?.id
     if (!userId) throw new Error('No user ID returned')
 
+    // Crear usuario en tabla usuarios
+    const { error: usuarioError } = await supabase
+      .from('usuarios')
+      .insert({
+        id: userId,
+        email,
+        nombre,
+        plan_suscripcion: 'free',
+        estado: 'activo',
+      })
+
+    if (usuarioError && !usuarioError.message.includes('duplicate')) throw usuarioError
+
+    // Crear perfil profesional
     const { error: profileError } = await supabase
       .from('perfil_profesional')
       .insert({
@@ -74,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profesion,
       })
 
-    if (profileError) throw profileError
+    if (profileError && !profileError.message.includes('duplicate')) throw profileError
 
     const newSession: NutricionistaSession = {
       nombre,
