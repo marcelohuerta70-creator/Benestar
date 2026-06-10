@@ -7,7 +7,8 @@ import {
   ArrowLeft, User, Tag, FileHeart, Activity, Salad,
   ClipboardList, Scale, FileText, Utensils, StickyNote, ChevronDown, FileDown,
 } from 'lucide-react'
-import { pacientesStorage, medicamentosStorage, antropometriaStorage, suplementosStorage, minutasStorage, perfilStorage } from '@/lib/storage'
+import { medicamentosStorage, antropometriaStorage, suplementosStorage, minutasStorage, perfilStorage } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 import { calcularEdad, cn } from '@/lib/utils'
 import { generarPDFPaciente } from '@/lib/pdf'
 import type { Paciente } from '@/lib/types'
@@ -51,13 +52,30 @@ export default function FichaPacientePage({ params }: { params: Promise<{ id: st
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const p = pacientesStorage.getById(id)
-    if (!p) { router.replace('/pacientes'); return }
-    setPaciente(p)
-    setPerfil(perfilStorage.get())
-    const antrop = antropometriaStorage.getByPaciente(id)
-    setPrimeraAntrop(antrop[0] || null)
-    setMeds(medicamentosStorage.getByPaciente(id))
+    const loadPaciente = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('pacientes')
+          .select('*')
+          .eq('id', id)
+          .single()
+
+        if (error || !data) {
+          router.replace('/pacientes')
+          return
+        }
+
+        setPaciente(data)
+        setPerfil(perfilStorage.get())
+        const antrop = antropometriaStorage.getByPaciente(id)
+        setPrimeraAntrop(antrop[0] || null)
+        setMeds(medicamentosStorage.getByPaciente(id))
+      } catch (err) {
+        console.error('[Load Paciente Error]', err)
+        router.replace('/pacientes')
+      }
+    }
+    loadPaciente()
   }, [id, router])
 
   // Cerrar dropdown al hacer click afuera
@@ -76,14 +94,18 @@ export default function FichaPacientePage({ params }: { params: Promise<{ id: st
     setDropdownOpen(false)
   }
 
-  function onPacienteUpdate(updated: Paciente) {
-    pacientesStorage.save(updated)
-    setPaciente(updated)
-    // Recargar datos por si cambió portal_activo u otros campos importantes
-    setTimeout(() => {
-      const reloaded = pacientesStorage.getById(id)
-      if (reloaded) setPaciente(reloaded)
-    }, 100)
+  async function onPacienteUpdate(updated: Paciente) {
+    try {
+      const { error } = await supabase
+        .from('pacientes')
+        .update(updated)
+        .eq('id', id)
+
+      if (error) throw error
+      setPaciente(updated)
+    } catch (err) {
+      console.error('[Update Error]', err)
+    }
   }
 
   function descargarFichaPDF() {
