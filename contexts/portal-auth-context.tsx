@@ -61,7 +61,14 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Validar contraseña con bcryptjs
-      const passwordMatch = bcryptjs.compareSync(password, (paciente as any)['contraseña_hash'] || '')
+      const hash = (paciente as any)['contraseña_hash'] || ''
+      const passwordMatch = bcryptjs.compareSync(password, hash)
+      console.log('[Password Debug]', {
+        password: password.substring(0, 3) + '*',
+        hashExists: !!hash,
+        hashStart: hash.substring(0, 10),
+        match: passwordMatch,
+      })
       if (!passwordMatch) {
         return { ok: false, error: 'Contraseña incorrecta.' }
       }
