@@ -118,6 +118,12 @@ export function FichaMinutas({ pacienteId }: Props) {
     ev.preventDefault()
     if (!form.titulo) return
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('User not authenticated')
+        return
+      }
+
       if (form.activa) {
         // Desactivar otras minutas activas
         await Promise.all(minutas
@@ -126,11 +132,10 @@ export function FichaMinutas({ pacienteId }: Props) {
       }
       const planData = {
         paciente_id: pacienteId,
+        profesional_id: user.id,
         especialidad: 'nutricion',
-        titulo: form.titulo,
         fecha_inicio: form.fecha_inicio || null,
         fecha_fin: form.fecha_fin || null,
-        contenido: '',
         estructura: form.estructura,
         activo: form.activa,
       }

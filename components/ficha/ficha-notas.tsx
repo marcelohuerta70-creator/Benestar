@@ -67,15 +67,20 @@ export function FichaNotas({ pacienteId }: Props) {
     ev.preventDefault()
     if (!form.contenido) return
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('User not authenticated')
+        return
+      }
+
       const notaData = {
         paciente_id: pacienteId,
-        especialidad: 'nutricion',
+        profesional_id: user.id,
         tipo: form.tipo,
         titulo: form.titulo || null,
         contenido: form.contenido,
         archivos: form.archivos_urls.map(a => a.nombre),
         archivos_urls: form.archivos_urls.map(a => a.url),
-        archivos_size_kb: form.archivos_urls.map(a => a.size_kb),
       }
       if (editando) {
         await supabase.from('notas_clinicas').update(notaData).eq('id', editando.id)

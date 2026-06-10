@@ -174,19 +174,16 @@ export function FichaControles({ pacienteId }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('User not authenticated')
+        return
+      }
+
       const consultaData = {
         paciente_id: pacienteId,
-        especialidad: 'nutricion',
+        profesional_id: user.id,
         fecha: form.fecha,
-        tipo_consulta: form.tipo_consulta,
-        proxima_cita: form.proxima_cita || null,
-        adherencia: form.adherencia || null,
-        cambios_observados: form.cambios_observados || null,
-        dificultades_reportadas: form.dificultades_reportadas || null,
-        observaciones_clinicas: form.observaciones_clinicas || null,
-        diagnostico_nutricional: form.diagnostico_nutricional || null,
-        indicaciones: form.indicaciones || null,
-        objetivos_proximo_control: form.objetivos_proximo_control || null,
         nota_para_paciente: form.nota_para_paciente || null,
       }
 
@@ -230,6 +227,7 @@ export function FichaControles({ pacienteId }: Props) {
 
         const antropData = {
           paciente_id: pacienteId,
+          profesional_id: user.id,
           consulta_id: editando?.id || null,
           fecha: form.fecha,
           peso_kg: peso,
@@ -248,6 +246,7 @@ export function FichaControles({ pacienteId }: Props) {
       if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
         const bioData = {
           paciente_id: pacienteId,
+          profesional_id: user.id,
           consulta_id: editando?.id || null,
           fecha: form.fecha,
           masa_grasa_kg: n(formBio.masa_grasa_kg) || 0,
