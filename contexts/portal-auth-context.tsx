@@ -2,10 +2,10 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { pacientesStorage, portalSessionStorage, pacienteProfesionalStorage, isSeeded, clearSeeded } from '@/lib/storage'
-import { seedDemoData } from '@/lib/seed-data'
+import { portalSessionStorage, clearSeeded } from '@/lib/storage'
 import type { PortalSession, Especialidad } from '@/lib/types'
 import bcryptjs from 'bcryptjs'
+import { supabase } from '@/lib/supabase'
 
 interface PortalAuthContextType {
   session: PortalSession | null
@@ -25,11 +25,6 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Cargar datos de demo si no existen pacientes
-    if (!isSeeded()) {
-      seedDemoData()
-    }
-
     const stored = portalSessionStorage.get()
     if (stored) {
       setSession(stored)
@@ -42,41 +37,56 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
   }, [router])
 
   async function login(rut: string, password: string): Promise<{ ok: boolean; error?: string; especialidades?: Especialidad[] }> {
-    // Normalizar RUT
-    const rutNorm = rut.replace(/\./g, '').trim().toUpperCase()
-    const pacientes = pacientesStorage.getAll()
-    const paciente = pacientes.find(p => {
-      const pRut = p.rut.replace(/\./g, '').trim().toUpperCase()
-      return pRut === rutNorm
-    })
+    try {
+      // Normalizar RUT
+      const rutNorm = rut.replace(/\./g, '').trim().toUpperCase()
 
-    if (!paciente) {
-      return { ok: false, error: 'RUT no encontrado. Verifica con tu nutricionista.' }
+      // Buscar paciente en Supabase por RUT
+      const { data: paciente, error: pacienteError } = await supabase
+        .from('pacientes')
+        .select('id, nombre_completo, rut, "contraseña_hash"')
+        .eq('rut', rutNorm)
+        .single()
+
+      if (pacienteError || !paciente) {
+        return { ok: false, error: 'RUT no encontrado. Verifica con tu nutricionista.' }
+      }
+
+      // Validar contraseña con bcryptjs
+      const passwordMatch = bcryptjs.compareSync(password, (paciente as any)['contraseña_hash'] || '')
+      if (!passwordMatch) {
+        return { ok: false, error: 'Contraseña incorrecta.' }
+      }
+
+      // Obtener especialidades del paciente desde paciente_profesional
+      const { data: pacienteProfs, error: profsError } = await supabase
+        .from('paciente_profesional')
+        .select('especialidad')
+        .eq('paciente_id', paciente.id)
+
+      if (profsError) {
+        return { ok: false, error: 'Error al obtener especialidades.' }
+      }
+
+      const esps = [...new Set(pacienteProfs.map(pp => pp.especialidad))] as Especialidad[]
+
+      if (esps.length === 0) {
+        return { ok: false, error: 'No hay especialidades asociadas a este RUT.' }
+      }
+
+      const newSession: PortalSession = {
+        paciente_id: paciente.id,
+        rut: paciente.rut,
+        nombre: paciente.nombre_completo,
+      }
+      portalSessionStorage.set(newSession)
+      setSession(newSession)
+      setEspecialidades(esps)
+      return { ok: true, especialidades: esps }
+    } catch (err) {
+      console.error('[Portal Login Error]', err)
+      return { ok: false, error: err instanceof Error ? err.message : 'Error al iniciar sesión' }
     }
-
-    // Validar contraseña con bcryptjs
-    const passwordMatch = bcryptjs.compareSync(password, paciente.contraseña_hash || '')
-    if (!passwordMatch) {
-      return { ok: false, error: 'Contraseña incorrecta.' }
-    }
-
-    // Obtener especialidades disponibles para este RUT
-    const pacienteProfs = pacienteProfesionalStorage.getByRut(rutNorm)
-    const esps = [...new Set(pacienteProfs.map(pp => pp.especialidad))] as Especialidad[]
-
-    if (esps.length === 0) {
-      return { ok: false, error: 'No hay especialidades asociadas a este RUT.' }
-    }
-
-    const newSession: PortalSession = {
-      paciente_id: paciente.id,
-      rut: paciente.rut,
-      nombre: paciente.nombre_completo,
-    }
-    portalSessionStorage.set(newSession)
-    setSession(newSession)
-    setEspecialidades(esps)
-    return { ok: true, especialidades: esps }
   }
 
   function selectEspecialidad(especialidad: Especialidad) {

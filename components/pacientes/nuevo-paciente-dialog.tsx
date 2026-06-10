@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { pacientesStorage, pacienteProfesionalStorage, perfilStorage, sessionStorage } from '@/lib/storage'
-import { generarId } from '@/lib/utils'
+import { sessionStorage } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 import type { Paciente } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,43 +47,72 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.nombre_completo || !form.rut || !form.fecha_nacimiento || !form.sexo || !form.objetivo) {
       return
     }
 
-    const paciente: Paciente = {
-      id: generarId(),
-      nombre_completo: form.nombre_completo,
-      rut: form.rut,
-      fecha_nacimiento: form.fecha_nacimiento,
-      sexo: form.sexo as 'M' | 'F',
-      email: form.email,
-      telefono: form.telefono,
-      objetivo: form.objetivo,
-      notas_generales: form.notas_generales,
-      estado: 'activo',
-      portal_activo: false,
-      created_at: new Date().toISOString(),
+    try {
+      const session = sessionStorage.get()
+      if (!session) {
+        alert('No hay sesión activa')
+        return
+      }
+
+      // Obtener el usuario_id desde Supabase Auth
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('Error: No hay usuario autenticado')
+        return
+      }
+
+      // 1. Crear paciente en Supabase
+      const { data: paciente, error: pacienteError } = await supabase
+        .from('pacientes')
+        .insert({
+          profesional_id: user.id,
+          nombre_completo: form.nombre_completo,
+          rut: form.rut,
+          fecha_nacimiento: form.fecha_nacimiento,
+          sexo: form.sexo,
+          email: form.email,
+          telefono: form.telefono,
+          objetivo: form.objetivo,
+          notas_generales: form.notas_generales,
+          estado: 'activo',
+          portal_activo: false,
+          contraseña_hash: '$2b$10$Pxd7LpT/tyxSW97fTSaZQOq2LuOeGy0M5zRY/7VfrfB4NEGwQAge6', // benestar123 hasheado
+        })
+        .select()
+        .single()
+
+      if (pacienteError) {
+        console.error('[Paciente Error]', pacienteError)
+        alert('Error al crear paciente: ' + pacienteError.message)
+        return
+      }
+
+      // 2. Crear relación paciente_profesional automáticamente
+      const { error: relError } = await supabase
+        .from('paciente_profesional')
+        .insert({
+          paciente_id: paciente.id,
+          profesional_id: user.id,
+          especialidad: 'nutricion',
+        })
+
+      if (relError) {
+        console.error('[Relation Error]', relError)
+      }
+
+      setForm({ nombre_completo: '', rut: '', fecha_nacimiento: '', sexo: '', email: '', telefono: '', objetivo: '', notas_generales: '' })
+      onOpenChange(false)
+      onCreated()
+    } catch (err) {
+      console.error('[Create Patient Error]', err)
+      alert('Error al crear paciente: ' + (err instanceof Error ? err.message : 'Desconocido'))
     }
-
-    pacientesStorage.save(paciente)
-
-    // Crear relación paciente_profesional automáticamente
-    const session = sessionStorage.get()
-    if (session) {
-      pacienteProfesionalStorage.save({
-        rut: paciente.rut,
-        profesional_id: session.email,
-        profesional_nombre: session.nombre,
-        especialidad: 'nutricion',
-        fecha_registro: new Date().toISOString(),
-      })
-    }
-
-    setForm({ nombre_completo: '', rut: '', fecha_nacimiento: '', sexo: '', email: '', telefono: '', objetivo: '', notas_generales: '' })
-    onCreated()
   }
 
   return (
