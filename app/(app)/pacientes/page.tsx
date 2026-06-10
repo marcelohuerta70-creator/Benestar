@@ -26,13 +26,16 @@ export default function PacientesPage() {
 
   async function recargar() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        console.warn('No authenticated user')
+        return
+      }
 
       const { data, error } = await supabase
         .from('pacientes')
         .select('*')
-        .eq('profesional_id', user.id)
+        .eq('profesional_id', session.user.id)
         .order('nombre_completo')
 
       if (error) {
