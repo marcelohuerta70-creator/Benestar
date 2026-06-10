@@ -30,7 +30,7 @@ export function FichaAlimentacion({ paciente, onUpdate }: Props) {
     alergias_alimentarias: paciente.alergias_alimentarias || '',
     alimentos_no_consume: paciente.alimentos_no_consume || '',
     suplementos_habituales: paciente.suplementos_habituales || '',
-    alimentacion_libres: paciente.alimentacion_libres || '',
+    notas_alimentacion: paciente.notas_alimentacion || '',
   })
 
   function guardar() {
@@ -46,7 +46,7 @@ export function FichaAlimentacion({ paciente, onUpdate }: Props) {
       alergias_alimentarias: paciente.alergias_alimentarias || '',
       alimentos_no_consume: paciente.alimentos_no_consume || '',
       suplementos_habituales: paciente.suplementos_habituales || '',
-      alimentacion_libres: paciente.alimentacion_libres || '',
+      notas_alimentacion: paciente.notas_alimentacion || '',
     })
     setEditando(false)
   }
@@ -162,11 +162,11 @@ export function FichaAlimentacion({ paciente, onUpdate }: Props) {
 
       <TextAreaCard
         titulo="Notas libres — Alimentación"
-        valor={paciente.alimentacion_libres || ''}
+        valor={paciente.notas_alimentacion || ''}
         editando={editando}
         placeholder="Cualquier observación adicional sobre la alimentación del paciente..."
-        onChange={v => setForm(f => ({ ...f, alimentacion_libres: v }))}
-        formValue={form.alimentacion_libres}
+        onChange={v => setForm(f => ({ ...f, notas_alimentacion: v }))}
+        formValue={form.notas_alimentacion}
       />
     </div>
   )

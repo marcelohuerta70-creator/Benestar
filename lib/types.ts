@@ -41,7 +41,8 @@ export interface Paciente {
   antecedentes_familiares?: string
   cirugias_previas?: string
   observaciones_clinicas?: string
-  observaciones_clinicas_libres?: string
+  notas_clinica?: string
+  medicamentos_actuales?: string
   habito_actividad_fisica?: string
   habito_consumo_agua?: string
   habito_sueno?: string
@@ -49,14 +50,14 @@ export interface Paciente {
   habito_tabaco?: string
   habito_drogas?: string
   habito_deposiciones?: string
-  habitos_libres?: string
+  notas_habitos?: string
   tipo_alimentacion?: TipoAlimentacion | string
   tipo_alimentacion_otro?: string
   preferencias_alimentarias?: string
   alergias_alimentarias?: string
   alimentos_no_consume?: string
   suplementos_habituales?: string
-  alimentacion_libres?: string
+  notas_alimentacion?: string
   contraseña_hash?: string
 }
 

@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Edit2, Check, X, Plus, Trash2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import type { Paciente, Medicamento } from '@/lib/types'
-import { medicamentosStorage } from '@/lib/storage'
-import { generarId } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,12 +20,23 @@ export function FichaClinica({ paciente, onUpdate }: Props) {
     antecedentes_familiares: paciente.antecedentes_familiares || '',
     cirugias_previas: paciente.cirugias_previas || '',
     observaciones_clinicas: paciente.observaciones_clinicas || '',
-    observaciones_clinicas_libres: paciente.observaciones_clinicas_libres || '',
+    notas_clinica: (paciente as any).notas_clinica || '',
   })
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
   const [nuevoMed, setNuevoMed] = useState({ nombre: '', dosis: '', frecuencia: '' })
 
-  function recargarMeds() { setMedicamentos(medicamentosStorage.getByPaciente(paciente.id)) }
+  async function recargarMeds() {
+    try {
+      const { data } = await supabase
+        .from('medicamentos')
+        .select('*')
+        .eq('paciente_id', paciente.id)
+      setMedicamentos((data || []) as Medicamento[])
+    } catch (err) {
+      console.error('[Load Meds Error]', err)
+    }
+  }
+
   useEffect(() => { recargarMeds() }, [paciente.id])
 
   function guardar() {
@@ -41,20 +51,34 @@ export function FichaClinica({ paciente, onUpdate }: Props) {
       antecedentes_familiares: paciente.antecedentes_familiares || '',
       cirugias_previas: paciente.cirugias_previas || '',
       observaciones_clinicas: paciente.observaciones_clinicas || '',
-      observaciones_clinicas_libres: paciente.observaciones_clinicas_libres || '',
+      notas_clinica: (paciente as any).notas_clinica || '',
     })
     setEditando(false)
   }
 
-  function agregarMedicamento() {
+  async function agregarMedicamento() {
     if (!nuevoMed.nombre) return
-    medicamentosStorage.save({
-      id: generarId(), paciente_id: paciente.id,
-      nombre: nuevoMed.nombre, dosis: nuevoMed.dosis, frecuencia: nuevoMed.frecuencia,
-      created_at: new Date().toISOString(),
-    })
-    setNuevoMed({ nombre: '', dosis: '', frecuencia: '' })
-    recargarMeds()
+    try {
+      await supabase.from('medicamentos').insert({
+        paciente_id: paciente.id,
+        nombre: nuevoMed.nombre,
+        dosis: nuevoMed.dosis,
+        frecuencia: nuevoMed.frecuencia,
+      })
+      setNuevoMed({ nombre: '', dosis: '', frecuencia: '' })
+      await recargarMeds()
+    } catch (err) {
+      console.error('[Add Med Error]', err)
+    }
+  }
+
+  async function eliminarMedicamento(id: string) {
+    try {
+      await supabase.from('medicamentos').delete().eq('id', id)
+      await recargarMeds()
+    } catch (err) {
+      console.error('[Delete Med Error]', err)
+    }
   }
 
   return (
@@ -111,7 +135,7 @@ export function FichaClinica({ paciente, onUpdate }: Props) {
                       <td className="px-4 py-2.5 text-neutral-600">{m.frecuencia || '—'}</td>
                       <td className="px-4 py-2.5">
                         <button
-                          onClick={() => { if (confirm('¿Eliminar?')) { medicamentosStorage.delete(m.id); recargarMeds() } }}
+                          onClick={() => { if (confirm('¿Eliminar?')) { eliminarMedicamento(m.id) } }}
                           className="text-neutral-300 hover:text-red-500 transition-colors"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -193,11 +217,11 @@ export function FichaClinica({ paciente, onUpdate }: Props) {
 
       <TextCard
         titulo="Notas libres"
-        valor={paciente.observaciones_clinicas_libres || ''}
+        valor={paciente.notas_clinica || ''}
         editando={editando}
         placeholder="Espacio libre para cualquier nota clínica adicional..."
-        onChange={v => setForm(f => ({ ...f, observaciones_clinicas_libres: v }))}
-        formValue={form.observaciones_clinicas_libres}
+        onChange={v => setForm(f => ({ ...f, notas_clinica: v }))}
+        formValue={form.notas_clinica}
       />
     </div>
   )

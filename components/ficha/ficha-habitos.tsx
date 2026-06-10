@@ -21,7 +21,7 @@ const CAMPOS = [
 
 type HabitoKey = typeof CAMPOS[number]['key']
 
-type FormState = Record<HabitoKey, string> & { habitos_libres: string }
+type FormState = Record<HabitoKey, string> & { notas_habitos: string }
 
 export function FichaHabitos({ paciente, onUpdate }: Props) {
   const [editando, setEditando] = useState(false)
@@ -33,7 +33,7 @@ export function FichaHabitos({ paciente, onUpdate }: Props) {
     habito_tabaco: paciente.habito_tabaco || '',
     habito_drogas: paciente.habito_drogas || '',
     habito_deposiciones: paciente.habito_deposiciones || '',
-    habitos_libres: paciente.habitos_libres || '',
+    notas_habitos: paciente.notas_habitos || '',
   })
 
   function guardar() {
@@ -50,7 +50,7 @@ export function FichaHabitos({ paciente, onUpdate }: Props) {
       habito_tabaco: paciente.habito_tabaco || '',
       habito_drogas: paciente.habito_drogas || '',
       habito_deposiciones: paciente.habito_deposiciones || '',
-      habitos_libres: paciente.habitos_libres || '',
+      notas_habitos: paciente.notas_habitos || '',
     })
     setEditando(false)
   }
@@ -105,12 +105,12 @@ export function FichaHabitos({ paciente, onUpdate }: Props) {
           <CardContent>
             {!editando ? (
               <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
-                {paciente.habitos_libres || <span className="text-neutral-400 italic">Sin notas adicionales</span>}
+                {paciente.notas_habitos || <span className="text-neutral-400 italic">Sin notas adicionales</span>}
               </p>
             ) : (
               <Textarea
-                value={form.habitos_libres}
-                onChange={e => setForm(f => ({ ...f, habitos_libres: e.target.value }))}
+                value={form.notas_habitos}
+                onChange={e => setForm(f => ({ ...f, notas_habitos: e.target.value }))}
                 placeholder="Cualquier observación adicional sobre los hábitos del paciente..."
                 rows={3}
               />
