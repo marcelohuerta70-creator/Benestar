@@ -226,11 +226,11 @@ export function FichaControles({ pacienteId }: Props) {
             hora: (form as any).proxima_cita_hora,
             estado: 'programada',
             motivo: 'Seguimiento nutricional',
-            paciente_nombre: paciente.nombre_completo,
-            duracion_min: 60,
-            observaciones: '',
           })
-          if (citaError) console.error('[Cita Insert Error]', citaError)
+          if (citaError) {
+            console.error('[Cita Insert Error]', citaError)
+            alert('Error al guardar cita: ' + citaError.message)
+          }
         }
       }
 
@@ -238,8 +238,6 @@ export function FichaControles({ pacienteId }: Props) {
       if (incluirMediciones && formAntrop.peso_kg && formAntrop.talla_cm) {
         const peso = parseFloat(formAntrop.peso_kg)
         const talla = parseFloat(formAntrop.talla_cm)
-        const cintura = parseFloat(formAntrop.perimetro_cintura_cm) || 0
-        const cadera = parseFloat(formAntrop.perimetro_cadera_cm) || 0
         const imc = calcularIMC(peso, talla)
 
         const antropData = {
@@ -250,13 +248,30 @@ export function FichaControles({ pacienteId }: Props) {
           peso_kg: peso,
           talla_cm: talla,
           imc,
-          perimetro_cintura_cm: cintura || null,
-          perimetro_cadera_cm: cadera || null,
-          icc: cadera > 0 ? Math.round((cintura / cadera) * 100) / 100 : null,
-          clasificacion_nutricional: clasificarIMCTexto(imc) || null,
+          perimetro_cintura_cm: n(formAntrop.perimetro_cintura_cm),
+          perimetro_cadera_cm: n(formAntrop.perimetro_cadera_cm),
+          per_brazo_relajado_cm: n(formAntrop.per_brazo_relajado),
+          per_brazo_contraido_cm: n(formAntrop.per_brazo_contraido),
+          perimetro_torax_cm: n(formAntrop.per_torax),
+          perimetro_abdomen_cm: n(formAntrop.per_abdomen),
+          perimetro_muslo_cm: n(formAntrop.per_muslo),
+          perimetro_pantorrilla_cm: n(formAntrop.per_pantorrilla),
+          pliegue_tricipital_mm: n(formAntrop.pliegue_tricipital),
+          pliegue_bicipital_mm: n(formAntrop.pliegue_bicipital),
+          pliegue_subescapular_mm: n(formAntrop.pliegue_subescapular),
+          pliegue_suprailiaco_mm: n(formAntrop.pliegue_suprailiaco),
+          pliegue_abdominal_mm: n(formAntrop.pliegue_abdominal),
+          pliegue_muslo_mm: n(formAntrop.pliegue_muslo),
+          pliegue_pantorrilla_mm: n(formAntrop.pliegue_pantorrilla),
+          envergadura_cm: n(formAntrop.envergadura),
+          altura_sentado_cm: n(formAntrop.altura_sentado),
         }
 
-        await supabase.from('mediciones_antropometria').insert(antropData)
+        const { error: antropError } = await supabase.from('mediciones_antropometria').insert(antropData)
+        if (antropError) {
+          console.error('[Insert Antrop Error]', antropError)
+          alert('Error al guardar mediciones: ' + antropError.message)
+        }
       }
 
       // Guardar bioimpedancia si se registró
@@ -266,16 +281,29 @@ export function FichaControles({ pacienteId }: Props) {
           profesional_id: user.id,
           consulta_id: editando?.id || null,
           fecha: form.fecha,
-          masa_grasa_kg: n(formBio.masa_grasa_kg) || 0,
-          masa_grasa_pct: n(formBio.masa_grasa_pct) || 0,
-          masa_magra_kg: n(formBio.masa_magra_kg) || 0,
-          agua_corporal_lt: n(formBio.agua_corporal_lt) || 0,
-          agua_corporal_pct: n(formBio.agua_corporal_pct) || 0,
-          metabolismo_basal_kcal: n(formBio.metabolismo_basal_kcal) || 0,
-          edad_metabolica: n(formBio.edad_metabolica) || 0,
+          masa_grasa_kg: n(formBio.masa_grasa_kg),
+          masa_grasa_pct: n(formBio.masa_grasa_pct),
+          masa_magra_kg: n(formBio.masa_magra_kg),
+          masa_libre_grasa_kg: n(formBio.masa_libre_grasa),
+          agua_corporal_lt: n(formBio.agua_corporal_lt),
+          agua_corporal_pct: n(formBio.agua_corporal_pct),
+          grasa_visceral: n(formBio.grasa_visceral),
+          proteina_corporal_kg: n(formBio.proteina_corporal),
+          masa_osea_kg: n(formBio.masa_osea),
+          metabolismo_basal_kcal: n(formBio.metabolismo_basal_kcal) ? Math.round(n(formBio.metabolismo_basal_kcal) || 0) : null,
+          edad_metabolica: n(formBio.edad_metabolica) ? Math.round(n(formBio.edad_metabolica) || 0) : null,
+          seg_brazo_izq: n(formBio.seg_brazo_izq),
+          seg_brazo_der: n(formBio.seg_brazo_der),
+          seg_tronco: n(formBio.seg_tronco),
+          seg_pierna_izq: n(formBio.seg_pierna_izq),
+          seg_pierna_der: n(formBio.seg_pierna_der),
         }
 
-        await supabase.from('mediciones_bioimpedancia').insert(bioData)
+        const { error: bioError } = await supabase.from('mediciones_bioimpedancia').insert(bioData)
+        if (bioError) {
+          console.error('[Insert Bio Error]', bioError)
+          alert('Error al guardar bioimpedancia: ' + bioError.message)
+        }
       }
 
       await recargar()
