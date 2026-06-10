@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Home, TrendingDown, FileText, Eye, EyeOff, ChevronDown, Utensils } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Bar } from 'recharts'
 import { usePortalAuth } from '@/contexts/portal-auth-context'
+import { supabase } from '@/lib/supabase'
 import {
   pacientesStorage, minutasStorage, citasStorage,
   antropometriaStorage, bioimpedanciaStorage, consultasStorage, notasStorage,
@@ -78,17 +79,36 @@ export default function PortalDashboard() {
     if (!loading && !session) { router.replace('/portal/login'); return }
     if (!session) return
 
-    const p = pacientesStorage.getById(session.paciente_id)
-    if (!p || !p.portal_activo) { logout(); return }
-    setPaciente(p)
+    const loadPacienteData = async () => {
+      try {
+        const { data: paciente, error } = await supabase
+          .from('pacientes')
+          .select('*')
+          .eq('id', session.paciente_id)
+          .single()
 
-    const mins = minutasStorage.getByPaciente(session.paciente_id)
-    setMinuta(mins.find(m => m.activa) || mins[0] || null)
-    setAntrop(antropometriaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
-    setBioimpedancia(bioimpedanciaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
-    setConsultas(consultasStorage.getByPaciente(session.paciente_id))
-    setNotas(notasStorage.getByPaciente(session.paciente_id).filter(n => n.tipo === 'paciente').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
-    setCitas(citasStorage.getAll().filter(c => c.paciente_id === session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
+        if (error || !paciente) {
+          console.error('Error loading patient:', error)
+          logout()
+          return
+        }
+
+        setPaciente(paciente)
+
+        const mins = minutasStorage.getByPaciente(session.paciente_id)
+        setMinuta(mins.find(m => m.activa) || mins[0] || null)
+        setAntrop(antropometriaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
+        setBioimpedancia(bioimpedanciaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
+        setConsultas(consultasStorage.getByPaciente(session.paciente_id))
+        setNotas(notasStorage.getByPaciente(session.paciente_id).filter(n => n.tipo === 'paciente').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+        setCitas(citasStorage.getAll().filter(c => c.paciente_id === session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
+      } catch (err) {
+        console.error('Error in portal dashboard:', err)
+        logout()
+      }
+    }
+
+    loadPacienteData()
   }, [session, loading])
 
   if (loading || !paciente) {

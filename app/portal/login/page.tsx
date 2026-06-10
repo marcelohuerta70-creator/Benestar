@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function PortalLoginPage() {
-  const { login } = usePortalAuth()
+  const { login, selectEspecialidad } = usePortalAuth()
   const router = useRouter()
   const [rut, setRut] = useState('')
   const [password, setPassword] = useState('')
@@ -35,8 +35,8 @@ export default function PortalLoginPage() {
           console.log('Navegando a especialidades')
           router.push('/portal/especialidades')
         } else {
-          console.log('Navegando a dashboard')
-          router.push('/portal/dashboard')
+          console.log('Navegando a dashboard con especialidad:', result.especialidades[0])
+          selectEspecialidad(result.especialidades[0])
         }
       } else {
         setError(result.error || 'Error al iniciar sesión. Intenta de nuevo.')
