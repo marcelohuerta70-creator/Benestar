@@ -23,6 +23,7 @@ export default function PacientesPage() {
   const [query, setQuery] = useState('')
   const [filtroEstado, setFiltroEstado] = useState<EstadoPaciente | 'todos'>('activo')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   async function recargar() {
     try {
@@ -51,7 +52,7 @@ export default function PacientesPage() {
 
   async function eliminarPaciente(pacienteId: string, nombrePaciente: string) {
     if (!confirm(`¿Estás seguro que deseas eliminar a ${nombrePaciente}? Esta acción no se puede deshacer.`)) return
-    
+
     try {
       const { error } = await supabase
         .from('pacientes')
@@ -62,7 +63,8 @@ export default function PacientesPage() {
       recargar()
     } catch (err) {
       console.error('[Delete Error]', err)
-      alert('Error al eliminar paciente')
+      setErrorMsg('Error al eliminar paciente')
+      setTimeout(() => setErrorMsg(''), 4000)
     }
   }
 
@@ -93,6 +95,22 @@ export default function PacientesPage() {
           Nuevo paciente
         </Button>
       </div>
+
+      {/* Error Banner */}
+      {errorMsg && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <span className="text-red-600 text-sm">!</span>
+          </div>
+          <p className="text-sm text-red-700 flex-1">{errorMsg}</p>
+          <button
+            onClick={() => setErrorMsg('')}
+            className="text-red-600 hover:text-red-700 text-xs font-medium"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
