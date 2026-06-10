@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Plus, Lock, Eye, Pencil, Trash2, Paperclip } from 'lucide-react'
-import { notasStorage } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 import { generarId, formatFecha, truncateFilename } from '@/lib/utils'
 import type { NotaClinica } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,18 @@ export function FichaNotas({ pacienteId }: Props) {
   const [form, setForm] = useState(EMPTY)
   const [filtro, setFiltro] = useState<'todas' | 'clinica' | 'paciente'>('todas')
 
-  function recargar() { setNotas(notasStorage.getByPaciente(pacienteId)) }
+  async function recargar() {
+    try {
+      const { data, error } = await supabase
+        .from('notas_clinicas')
+        .select('*')
+        .eq('paciente_id', pacienteId)
+        .order('created_at', { ascending: false })
+      if (!error && data) setNotas(data as NotaClinica[])
+    } catch (err) {
+      console.error('[Load Notas Error]', err)
+    }
+  }
   useEffect(() => { recargar() }, [pacienteId])
 
   function openNuevo(tipo?: 'clinica' | 'paciente') {
@@ -52,25 +63,31 @@ export function FichaNotas({ pacienteId }: Props) {
   }
 
 
-  function handleSubmit(ev: React.FormEvent) {
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault()
     if (!form.contenido) return
-    const now = new Date().toISOString()
-    const item: NotaClinica = {
-      id: editando?.id || generarId(),
-      paciente_id: pacienteId,
-      tipo: form.tipo,
-      titulo: form.titulo,
-      contenido: form.contenido,
-      archivos: form.archivos_urls.map(a => a.nombre),
-      archivos_urls: form.archivos_urls.map(a => a.url),
-      archivos_size_kb: form.archivos_urls.map(a => a.size_kb),
-      created_at: editando?.created_at || now,
-      updated_at: now,
+    try {
+      const notaData = {
+        id: editando?.id || generarId(),
+        paciente_id: pacienteId,
+        especialidad: 'nutricion',
+        tipo: form.tipo,
+        titulo: form.titulo || null,
+        contenido: form.contenido,
+        archivos: form.archivos_urls.map(a => a.nombre),
+        archivos_urls: form.archivos_urls.map(a => a.url),
+        archivos_size_kb: form.archivos_urls.map(a => a.size_kb),
+      }
+      if (editando) {
+        await supabase.from('notas_clinicas').update(notaData).eq('id', editando.id)
+      } else {
+        await supabase.from('notas_clinicas').insert(notaData)
+      }
+      await recargar()
+      setDialogOpen(false)
+    } catch (err) {
+      console.error('[Save Nota Error]', err)
     }
-    notasStorage.save(item)
-    recargar()
-    setDialogOpen(false)
   }
 
   const filtradas = notas.filter(n => filtro === 'todas' || n.tipo === filtro)
@@ -153,7 +170,7 @@ export function FichaNotas({ pacienteId }: Props) {
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
                   <Button variant="ghost" size="sm"
-                    onClick={() => { if (confirm('¿Eliminar esta nota?')) { notasStorage.delete(nota.id); recargar() } }}
+                    onClick={async () => { if (confirm('¿Eliminar esta nota?')) { try { await supabase.from('notas_clinicas').delete().eq('id', nota.id); await recargar() } catch (err) { console.error('[Delete Error]', err) } } }}
                     className="text-red-400 hover:text-red-600 hover:bg-red-50">
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

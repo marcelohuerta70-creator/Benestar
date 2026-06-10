@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, CalendarDays, Activity, Paperclip } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import { consultasStorage, antropometriaStorage, bioimpedanciaStorage, citasStorage, pacientesStorage } from '@/lib/storage'
 import { generarId, formatFecha, formatFechaCorta, calcularIMC, truncateFilename } from '@/lib/utils'
 import type { Consulta, Antropometria, Bioimpedancia, TipoConsulta, NivelAdherencia } from '@/lib/types'
@@ -99,10 +100,21 @@ export function FichaControles({ pacienteId }: Props) {
   const [formBio, setFormBio] = useState(BIO_EMPTY)
   const [segmentalOpen, setSegmentalOpen] = useState(false)
 
-  function recargar() {
-    const all = consultasStorage.getByPaciente(pacienteId)
-    setConsultas(all)
-    if (all.length > 0) setExpandidos(new Set([all[0].id]))
+  async function recargar() {
+    try {
+      const { data, error } = await supabase
+        .from('consultas')
+        .select('*')
+        .eq('paciente_id', pacienteId)
+        .order('fecha', { ascending: false })
+
+      if (!error && data) {
+        setConsultas(data as Consulta[])
+        if (data.length > 0) setExpandidos(new Set([data[0].id]))
+      }
+    } catch (err) {
+      console.error('[Load Consultas Error]', err)
+    }
   }
 
   useEffect(() => { recargar() }, [pacienteId])
@@ -159,96 +171,84 @@ export function FichaControles({ pacienteId }: Props) {
     setDialogOpen(true)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const now = new Date().toISOString()
-    const consulta: Consulta = {
-      id: editando?.id || generarId(),
-      paciente_id: pacienteId,
-      ...form,
-      created_at: editando?.created_at || now,
-    }
-    consultasStorage.save(consulta)
+    try {
+      const consultaId = editando?.id || generarId()
 
-    // Crear cita automática si hay próxima fecha y hora
-    if (form.proxima_cita && form.proxima_cita_hora && !editando) {
-      const paciente = pacientesStorage.getById(pacienteId)
-      if (paciente) {
-        citasStorage.save({
+      // Guardar/actualizar consulta en Supabase
+      const consultaData = {
+        id: consultaId,
+        paciente_id: pacienteId,
+        especialidad: 'nutricion',
+        fecha: form.fecha,
+        tipo_consulta: form.tipo_consulta,
+        proxima_cita: form.proxima_cita || null,
+        adherencia: form.adherencia || null,
+        cambios_observados: form.cambios_observados || null,
+        dificultades_reportadas: form.dificultades_reportadas || null,
+        observaciones_clinicas: form.observaciones_clinicas || null,
+        diagnostico_nutricional: form.diagnostico_nutricional || null,
+        indicaciones: form.indicaciones || null,
+        objetivos_proximo_control: form.objetivos_proximo_control || null,
+        nota_para_paciente: form.nota_para_paciente || null,
+      }
+
+      if (editando) {
+        await supabase.from('consultas').update(consultaData).eq('id', consultaId)
+      } else {
+        await supabase.from('consultas').insert(consultaData)
+      }
+
+      // Guardar antropometría si se registró
+      if (incluirMediciones && formAntrop.peso_kg && formAntrop.talla_cm) {
+        const peso = parseFloat(formAntrop.peso_kg)
+        const talla = parseFloat(formAntrop.talla_cm)
+        const cintura = parseFloat(formAntrop.perimetro_cintura_cm) || 0
+        const cadera = parseFloat(formAntrop.perimetro_cadera_cm) || 0
+        const imc = calcularIMC(peso, talla)
+
+        const antropData = {
           id: generarId(),
           paciente_id: pacienteId,
-          paciente_nombre: paciente.nombre_completo,
-          fecha: form.proxima_cita,
-          hora: form.proxima_cita_hora,
-          duracion_min: 60,
-          motivo: 'Seguimiento nutricional',
-          observaciones: '',
-          estado: 'programada',
-          created_at: now,
-        })
-      }
-    }
+          consulta_id: consultaId,
+          fecha: form.fecha,
+          peso_kg: peso,
+          talla_cm: talla,
+          imc,
+          perimetro_cintura_cm: cintura || null,
+          perimetro_cadera_cm: cadera || null,
+          icc: cadera > 0 ? Math.round((cintura / cadera) * 100) / 100 : null,
+          clasificacion_nutricional: clasificarIMCTexto(imc) || null,
+        }
 
-    // Guardar mediciones si se registraron
-    if (incluirMediciones && formAntrop.peso_kg && formAntrop.talla_cm) {
-      const peso = parseFloat(formAntrop.peso_kg)
-      const talla = parseFloat(formAntrop.talla_cm)
-      const cintura = parseFloat(formAntrop.perimetro_cintura_cm) || 0
-      const cadera = parseFloat(formAntrop.perimetro_cadera_cm) || 0
-      const imc = calcularIMC(peso, talla)
-      const antrop: Antropometria = {
-        id: generarId(), paciente_id: pacienteId, consulta_id: consulta.id,
-        fecha: form.fecha, peso_kg: peso, talla_cm: talla, imc,
-        perimetro_cintura_cm: cintura, perimetro_cadera_cm: cadera,
-        icc: cadera > 0 ? Math.round((cintura / cadera) * 100) / 100 : 0,
-        clasificacion_nutricional: clasificarIMCTexto(imc),
-        per_brazo_relajado: n(formAntrop.per_brazo_relajado),
-        per_brazo_contraido: n(formAntrop.per_brazo_contraido),
-        per_torax: n(formAntrop.per_torax),
-        per_abdomen: n(formAntrop.per_abdomen),
-        per_muslo: n(formAntrop.per_muslo),
-        per_pantorrilla: n(formAntrop.per_pantorrilla),
-        pliegue_tricipital: n(formAntrop.pliegue_tricipital),
-        pliegue_bicipital: n(formAntrop.pliegue_bicipital),
-        pliegue_subescapular: n(formAntrop.pliegue_subescapular),
-        pliegue_suprailiaco: n(formAntrop.pliegue_suprailiaco),
-        pliegue_abdominal: n(formAntrop.pliegue_abdominal),
-        pliegue_muslo: n(formAntrop.pliegue_muslo),
-        pliegue_pantorrilla: n(formAntrop.pliegue_pantorrilla),
-        envergadura: n(formAntrop.envergadura),
-        altura_sentado: n(formAntrop.altura_sentado),
-        created_at: now,
+        await supabase.from('mediciones_antropometria').insert(antropData)
       }
-      antropometriaStorage.save(antrop)
-    }
 
-    if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
-      const bio: Bioimpedancia = {
-        id: generarId(), paciente_id: pacienteId, consulta_id: consulta.id,
-        fecha: form.fecha,
-        masa_grasa_kg: n(formBio.masa_grasa_kg) || 0,
-        masa_grasa_pct: n(formBio.masa_grasa_pct) || 0,
-        masa_magra_kg: n(formBio.masa_magra_kg) || 0,
-        masa_libre_grasa: n(formBio.masa_libre_grasa),
-        agua_corporal_lt: n(formBio.agua_corporal_lt) || 0,
-        agua_corporal_pct: n(formBio.agua_corporal_pct) || 0,
-        grasa_visceral: n(formBio.grasa_visceral),
-        proteina_corporal: n(formBio.proteina_corporal),
-        masa_osea: n(formBio.masa_osea),
-        metabolismo_basal_kcal: n(formBio.metabolismo_basal_kcal) || 0,
-        edad_metabolica: n(formBio.edad_metabolica) || 0,
-        seg_brazo_izq: n(formBio.seg_brazo_izq),
-        seg_brazo_der: n(formBio.seg_brazo_der),
-        seg_tronco: n(formBio.seg_tronco),
-        seg_pierna_izq: n(formBio.seg_pierna_izq),
-        seg_pierna_der: n(formBio.seg_pierna_der),
-        created_at: now,
+      // Guardar bioimpedancia si se registró
+      if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
+        const bioData = {
+          id: generarId(),
+          paciente_id: pacienteId,
+          consulta_id: consultaId,
+          fecha: form.fecha,
+          masa_grasa_kg: n(formBio.masa_grasa_kg) || 0,
+          masa_grasa_pct: n(formBio.masa_grasa_pct) || 0,
+          masa_magra_kg: n(formBio.masa_magra_kg) || 0,
+          agua_corporal_lt: n(formBio.agua_corporal_lt) || 0,
+          agua_corporal_pct: n(formBio.agua_corporal_pct) || 0,
+          metabolismo_basal_kcal: n(formBio.metabolismo_basal_kcal) || 0,
+          edad_metabolica: n(formBio.edad_metabolica) || 0,
+        }
+
+        await supabase.from('mediciones_bioimpedancia').insert(bioData)
       }
-      bioimpedanciaStorage.save(bio)
-    }
 
-    recargar()
-    setDialogOpen(false)
+      await recargar()
+      setDialogOpen(false)
+    } catch (err) {
+      console.error('[Save Consulta Error]', err)
+    }
   }
 
   function n(v: string): number | undefined {
@@ -256,8 +256,10 @@ export function FichaControles({ pacienteId }: Props) {
     return isNaN(parsed) ? undefined : parsed
   }
 
-  const antropDeControl = (consultaId: string) =>
-    antropometriaStorage.getByPaciente(pacienteId).find(a => a.consulta_id === consultaId)
+  function antropDeControl(consultaId: string) {
+    const antrop = consultas.find(c => c.id === consultaId)
+    return antrop ? (antrop as any).mediciones_antropometria?.[0] : undefined
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -389,18 +391,16 @@ export function FichaControles({ pacienteId }: Props) {
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </Button>
                       <Button variant="ghost" size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           if (confirm('¿Eliminar este control? También se eliminarán las mediciones asociadas.')) {
-                            // Eliminar mediciones asociadas
-                            antropometriaStorage.getByPaciente(pacienteId)
-                              .filter(a => a.consulta_id === c.id)
-                              .forEach(a => antropometriaStorage.delete(a.id))
-                            bioimpedanciaStorage.getByPaciente(pacienteId)
-                              .filter(b => b.consulta_id === c.id)
-                              .forEach(b => bioimpedanciaStorage.delete(b.id))
-                            // Eliminar consulta
-                            consultasStorage.delete(c.id)
-                            recargar()
+                            try {
+                              await supabase.from('mediciones_antropometria').delete().eq('consulta_id', c.id)
+                              await supabase.from('mediciones_bioimpedancia').delete().eq('consulta_id', c.id)
+                              await supabase.from('consultas').delete().eq('id', c.id)
+                              await recargar()
+                            } catch (err) {
+                              console.error('[Delete Error]', err)
+                            }
                           }
                         }}
                         className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50">

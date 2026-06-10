@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Plus, FileText, Trash2, Pencil, Paperclip } from 'lucide-react'
-import { examenesStorage } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 import { generarId, formatFecha, formatFechaCorta, truncateFilename } from '@/lib/utils'
 import type { Examen } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,18 @@ export function FichaExamenes({ pacienteId }: Props) {
   const [form, setForm] = useState(EMPTY)
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
 
-  function recargar() { setExamenes(examenesStorage.getByPaciente(pacienteId)) }
+  async function recargar() {
+    try {
+      const { data, error } = await supabase
+        .from('examenes')
+        .select('*')
+        .eq('paciente_id', pacienteId)
+        .order('fecha', { ascending: false })
+      if (!error && data) setExamenes(data as Examen[])
+    } catch (err) {
+      console.error('[Load Examenes Error]', err)
+    }
+  }
   useEffect(() => { recargar() }, [pacienteId])
 
   function openNuevo() { setEditando(null); setForm(EMPTY); setDialogOpen(true) }
@@ -46,18 +57,32 @@ export function FichaExamenes({ pacienteId }: Props) {
     setDialogOpen(true)
   }
 
-  function handleSubmit(ev: React.FormEvent) {
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault()
     if (!form.tipo) return
-    const item: Examen = {
-      id: editando?.id || generarId(),
-      paciente_id: pacienteId,
-      ...form,
-      created_at: editando?.created_at || new Date().toISOString(),
+    try {
+      const examData = {
+        id: editando?.id || generarId(),
+        paciente_id: pacienteId,
+        especialidad: 'nutricion',
+        fecha: form.fecha,
+        tipo: form.tipo,
+        resultado: form.resultado || null,
+        notas: form.notas || null,
+        archivo_nombre: form.archivo_nombre || null,
+        archivo_url: form.archivo_url || null,
+        archivo_size_kb: form.archivo_size_kb || 0,
+      }
+      if (editando) {
+        await supabase.from('examenes').update(examData).eq('id', editando.id)
+      } else {
+        await supabase.from('examenes').insert(examData)
+      }
+      await recargar()
+      setDialogOpen(false)
+    } catch (err) {
+      console.error('[Save Examen Error]', err)
     }
-    examenesStorage.save(item)
-    recargar()
-    setDialogOpen(false)
   }
 
   function toggleExpandido(id: string) {
@@ -141,7 +166,7 @@ export function FichaExamenes({ pacienteId }: Props) {
                       <Button variant="outline" size="sm" onClick={() => openEditar(examen)} className="gap-1.5">
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => { if (confirm('¿Eliminar?')) { examenesStorage.delete(examen.id); recargar() } }}
+                      <Button variant="ghost" size="sm" onClick={async () => { if (confirm('¿Eliminar?')) { try { await supabase.from('examenes').delete().eq('id', examen.id); await recargar() } catch (err) { console.error('[Delete Error]', err) } } }}
                         className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50">
                         <Trash2 className="h-3.5 w-3.5" /> Eliminar
                       </Button>

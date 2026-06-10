@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { Plus, Utensils, Pencil, Trash2, CheckCircle, Download, ChevronDown, ChevronUp } from 'lucide-react'
-import { minutasStorage, suplementosStorage, perfilStorage } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
+import { minutasStorage, suplementosStorage, perfilStorage, pacientesStorage } from '@/lib/storage'
 import { generarId, formatFechaCorta } from '@/lib/utils'
 import { generarPDFMinuta } from '@/lib/pdf'
 import type { Minuta, Suplemento, MinutaEstructurada, ComidaDia } from '@/lib/types'
 import { MINUTA_VACIA } from '@/lib/types'
-import { pacientesStorage } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -54,16 +54,35 @@ export function FichaMinutas({ pacienteId }: Props) {
 
   function deepCopy<T>(obj: T): T { return JSON.parse(JSON.stringify(obj)) }
 
-  function recargar() {
-    setMinutas(minutasStorage.getByPaciente(pacienteId))
-    setSuplementos(suplementosStorage.getByPaciente(pacienteId))
+  async function recargar() {
+    try {
+      const { data: planData } = await supabase
+        .from('planes')
+        .select('*')
+        .eq('paciente_id', pacienteId)
+        .eq('especialidad', 'nutricion')
+        .order('fecha_inicio', { ascending: false })
+
+      const { data: supData } = await supabase
+        .from('suplementos')
+        .select('*')
+        .eq('paciente_id', pacienteId)
+        .catch(() => ({ data: [] }))
+
+      const minutas = (planData as any[] || []).map(p => ({
+        ...p,
+        titulo: p.titulo || 'Sin título',
+        estructura: p.estructura || MINUTA_VACIA,
+      })) as Minuta[]
+      setMinutas(minutas)
+      setSuplementos((supData || []) as Suplemento[])
+    } catch (err) {
+      console.error('[Load Minutas Error]', err)
+    }
   }
 
   useEffect(() => {
     recargar()
-    const all = minutasStorage.getByPaciente(pacienteId)
-    const activa = all.find(m => m.activa)
-    if (activa) setExpandidoId(activa.id)
   }, [pacienteId])
 
   function openNuevo() {
@@ -90,21 +109,37 @@ export function FichaMinutas({ pacienteId }: Props) {
     }))
   }
 
-  function handleSubmit(ev: React.FormEvent) {
+  async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault()
     if (!form.titulo) return
-    if (form.activa) {
-      minutas.forEach(m => { if (m.id !== editando?.id && m.activa) minutasStorage.save({ ...m, activa: false }) })
+    try {
+      if (form.activa) {
+        // Desactivar otras minutas activas
+        await Promise.all(minutas
+          .filter(m => m.id !== editando?.id && m.activa)
+          .map(m => supabase.from('planes').update({ activo: false }).eq('id', m.id)))
+      }
+      const planData = {
+        id: editando?.id || generarId(),
+        paciente_id: pacienteId,
+        especialidad: 'nutricion',
+        titulo: form.titulo,
+        fecha_inicio: form.fecha_inicio || null,
+        fecha_fin: form.fecha_fin || null,
+        contenido: '',
+        estructura: form.estructura,
+        activo: form.activa,
+      }
+      if (editando) {
+        await supabase.from('planes').update(planData).eq('id', editando.id)
+      } else {
+        await supabase.from('planes').insert(planData)
+      }
+      await recargar()
+      setDialogOpen(false)
+    } catch (err) {
+      console.error('[Save Minuta Error]', err)
     }
-    const item: Minuta = {
-      id: editando?.id || generarId(), paciente_id: pacienteId,
-      titulo: form.titulo, fecha_inicio: form.fecha_inicio, fecha_fin: form.fecha_fin,
-      contenido: '', estructura: form.estructura, activa: form.activa,
-      created_at: editando?.created_at || new Date().toISOString(),
-    }
-    minutasStorage.save(item)
-    recargar()
-    setDialogOpen(false)
   }
 
   function descargarPDF(minuta: Minuta) {
@@ -212,7 +247,7 @@ export function FichaMinutas({ pacienteId }: Props) {
                     <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); openEditar(m) }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); if (confirm('¿Eliminar?')) { minutasStorage.delete(m.id); recargar() } }} className="text-red-400 hover:text-red-600">
+                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); if (confirm('¿Eliminar?')) { (async () => { try { await supabase.from('planes').delete().eq('id', m.id); await recargar() } catch (err) { console.error('[Delete Error]', err) } })() } }} className="text-red-400 hover:text-red-600">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>

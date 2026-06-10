@@ -6,7 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, AreaChart, Area,
 } from 'recharts'
-import { antropometriaStorage, bioimpedanciaStorage } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 import { formatFechaCorta } from '@/lib/utils'
 import type { Antropometria, Bioimpedancia } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,8 +19,19 @@ export function FichaMediciones({ pacienteId }: Props) {
   const [bio, setBio] = useState<Bioimpedancia[]>([])
 
   useEffect(() => {
-    setAntrop(antropometriaStorage.getByPaciente(pacienteId))
-    setBio(bioimpedanciaStorage.getByPaciente(pacienteId))
+    const loadMediciones = async () => {
+      try {
+        const [{ data: antropData }, { data: bioData }] = await Promise.all([
+          supabase.from('mediciones_antropometria').select('*').eq('paciente_id', pacienteId).order('fecha', { ascending: false }),
+          supabase.from('mediciones_bioimpedancia').select('*').eq('paciente_id', pacienteId).order('fecha', { ascending: false }),
+        ])
+        setAntrop((antropData as Antropometria[]) || [])
+        setBio((bioData as Bioimpedancia[]) || [])
+      } catch (err) {
+        console.error('[Load Mediciones Error]', err)
+      }
+    }
+    loadMediciones()
   }, [pacienteId])
 
   if (antrop.length === 0 && bio.length === 0) {
