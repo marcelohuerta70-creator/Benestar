@@ -107,17 +107,8 @@ export default function PortalDashboard() {
         setMinuta(mins.find(m => m.activo) || mins[0] || null)
         console.log('[Minutas Cargadas]', mins.length, 'planes')
 
-        const { data: antrop } = await supabase
-          .from('mediciones_antropometria')
-          .select('*')
-          .eq('paciente_id', session.paciente_id)
-          .order('fecha', { ascending: false })
-
-        const { data: bio } = await supabase
-          .from('mediciones_bioimpedancia')
-          .select('*')
-          .eq('paciente_id', session.paciente_id)
-          .order('fecha', { ascending: false })
+        const res = await fetch(`/api/portal/mediciones?pacienteId=${session.paciente_id}`)
+        const { antrop, bio } = await res.json()
 
         const { data: consultas } = await supabase
           .from('consultas')
