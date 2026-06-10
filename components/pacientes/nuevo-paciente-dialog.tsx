@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { sessionStorage } from '@/lib/storage'
 import { supabase } from '@/lib/supabase'
+import bcryptjs from 'bcryptjs'
 import type { Paciente } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
     telefono: '',
     objetivo: '',
     notas_generales: '',
+    contraseña: '',
   })
 
   function update(field: string, value: string) {
@@ -49,7 +51,8 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.nombre_completo || !form.rut || !form.fecha_nacimiento || !form.sexo || !form.objetivo) {
+    if (!form.nombre_completo || !form.rut || !form.fecha_nacimiento || !form.sexo || !form.objetivo || !form.contraseña) {
+      alert('Completa todos los campos, incluyendo la contraseña del paciente')
       return
     }
 
@@ -67,6 +70,9 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
         return
       }
 
+      // Hashear contraseña
+      const contraseñaHash = bcryptjs.hashSync(form.contraseña, 10)
+
       // 1. Crear paciente en Supabase
       const { data: paciente, error: pacienteError } = await supabase
         .from('pacientes')
@@ -82,7 +88,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
           notas_generales: form.notas_generales,
           estado: 'activo',
           portal_activo: false,
-          contraseña_hash: '$2b$10$Pxd7LpT/tyxSW97fTSaZQOq2LuOeGy0M5zRY/7VfrfB4NEGwQAge6', // benestar123 hasheado
+          contraseña_hash: contraseñaHash,
         })
         .select()
         .single()
@@ -106,7 +112,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
         console.error('[Relation Error]', relError)
       }
 
-      setForm({ nombre_completo: '', rut: '', fecha_nacimiento: '', sexo: '', email: '', telefono: '', objetivo: '', notas_generales: '' })
+      setForm({ nombre_completo: '', rut: '', fecha_nacimiento: '', sexo: '', email: '', telefono: '', objetivo: '', notas_generales: '', contraseña: '' })
       onOpenChange(false)
       onCreated()
     } catch (err) {
@@ -175,6 +181,12 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="notas">Notas iniciales</Label>
             <Textarea id="notas" placeholder="Antecedentes relevantes, medicamentos, alergias..." value={form.notas_generales} onChange={e => update('notas_generales', e.target.value)} rows={3} />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="contraseña">Contraseña para portal del paciente *</Label>
+            <Input id="contraseña" type="password" placeholder="••••••••" value={form.contraseña} onChange={e => update('contraseña', e.target.value)} required />
+            <p className="text-xs text-neutral-500">El paciente usará esta contraseña para acceder a su portal</p>
           </div>
 
           <div className="flex gap-3 justify-end mt-2">
