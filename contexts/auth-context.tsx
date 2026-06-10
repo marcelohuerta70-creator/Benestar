@@ -35,15 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: perfil } = await supabase
       .from('perfil_profesional')
-      .select('nombre, profesion')
-      .eq('usuario_id', data.user.id)
+      .select('nombre, profesion, plan_suscripcion')
+      .eq('user_id', data.user.id)
       .single()
 
     const newSession: NutricionistaSession = {
       nombre: perfil?.nombre || email,
       email: data.user.email || email,
       especialidad: perfil?.profesion || 'Nutrición Clínica',
-      plan: 'pro',
+      plan: perfil?.plan_suscripcion || 'free',
     }
 
     storage.set(newSession)

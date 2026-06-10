@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Crear usuario en Auth
+    // 1. Crear usuario en Auth (con email confirmado automáticamente)
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -43,34 +43,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Crear usuario en tabla usuarios
-    const { error: usuarioError } = await supabase
-      .from('usuarios')
-      .insert({
-        id: userId,
-        email,
-        nombre,
-        plan_suscripcion: 'free',
-        estado: 'activo',
-      })
-
-    if (usuarioError) {
-      return NextResponse.json(
-        { error: usuarioError.message },
-        { status: 400 }
-      )
-    }
-
-    // 3. Crear perfil profesional
+    // 2. Crear perfil profesional (user_id = auth.uid)
     const { error: profileError } = await supabase
       .from('perfil_profesional')
       .insert({
-        usuario_id: userId,
+        user_id: userId,
         nombre,
         profesion,
+        plan_suscripcion: 'free',
       })
 
     if (profileError) {
+      console.error('[Profile Error]', profileError)
       return NextResponse.json(
         { error: profileError.message },
         { status: 400 }
