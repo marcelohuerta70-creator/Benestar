@@ -238,15 +238,15 @@ CREATE TABLE IF NOT EXISTS citas (
 -- ÍNDICES
 -- ============================================
 
-CREATE INDEX idx_perfil_user_id ON perfil_profesional(user_id);
-CREATE INDEX idx_pacientes_profesional_id ON pacientes(profesional_id);
-CREATE INDEX idx_pacientes_rut ON pacientes(rut);
-CREATE INDEX idx_pacientes_estado ON pacientes(estado);
-CREATE INDEX idx_consultas_paciente_id ON consultas(paciente_id);
-CREATE INDEX idx_consultas_fecha ON consultas(fecha);
-CREATE INDEX idx_examenes_paciente_id ON examenes(paciente_id);
-CREATE INDEX idx_citas_profesional_id ON citas(profesional_id);
-CREATE INDEX idx_citas_fecha ON citas(fecha);
+CREATE INDEX IF NOT EXISTS idx_perfil_user_id ON perfil_profesional(user_id);
+CREATE INDEX IF NOT EXISTS idx_pacientes_profesional_id ON pacientes(profesional_id);
+CREATE INDEX IF NOT EXISTS idx_pacientes_rut ON pacientes(rut);
+CREATE INDEX IF NOT EXISTS idx_pacientes_estado ON pacientes(estado);
+CREATE INDEX IF NOT EXISTS idx_consultas_paciente_id ON consultas(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_consultas_fecha ON consultas(fecha);
+CREATE INDEX IF NOT EXISTS idx_examenes_paciente_id ON examenes(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_citas_profesional_id ON citas(profesional_id);
+CREATE INDEX IF NOT EXISTS idx_citas_fecha ON citas(fecha);
 
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
