@@ -95,15 +95,17 @@ export default function PortalDashboard() {
 
         setPaciente(paciente)
 
-        const { data: planes } = await supabase
+        const { data: planes, error: planesError } = await supabase
           .from('planes')
           .select('*')
           .eq('paciente_id', session.paciente_id)
           .eq('especialidad', 'nutricion')
           .order('fecha_inicio', { ascending: false })
 
+        if (planesError) console.error('[Planes Error]', planesError)
         const mins = (planes || []) as any[]
         setMinuta(mins.find(m => m.activo) || mins[0] || null)
+        console.log('[Minutas Cargadas]', mins.length, 'planes')
 
         const { data: antrop } = await supabase
           .from('mediciones_antropometria')
