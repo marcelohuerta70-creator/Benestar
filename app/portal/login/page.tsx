@@ -25,10 +25,17 @@ export default function PortalLoginPage() {
     setLoading(true)
     try {
       const result = await login(rut, password)
+      console.log('[Login Result]', {
+        ok: result.ok,
+        especialidadesCount: result.especialidades?.length,
+        error: result.error,
+      })
       if (result.ok && result.especialidades && result.especialidades.length > 0) {
         if (result.especialidades.length > 1) {
+          console.log('Navegando a especialidades')
           router.push('/portal/especialidades')
         } else {
+          console.log('Navegando a dashboard')
           router.push('/portal/dashboard')
         }
       } else {
