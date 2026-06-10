@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, UserCheck, CalendarDays, TrendingUp, ArrowRight, LogOut, CreditCard, Menu } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 import { pacientesStorage, consultasStorage, perfilStorage } from '@/lib/storage'
 import { formatFechaCorta } from '@/lib/utils'
@@ -29,10 +30,27 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setPerfil(perfilStorage.get())
-    setPacientes(pacientesStorage.getAll())
-    // Get all consultas
-    const all = pacientesStorage.getAll().flatMap(p => consultasStorage.getByPaciente(p.id))
-    setConsultas(all)
+    const loadData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data: pacData } = await supabase
+          .from('pacientes')
+          .select('*')
+          .eq('profesional_id', user.id)
+
+        const { data: consulData } = await supabase
+          .from('consultas')
+          .select('*')
+
+        setPacientes((pacData || []) as Paciente[])
+        setConsultas((consulData || []) as Consulta[])
+      } catch (err) {
+        console.error('[Load Dashboard Error]', err)
+      }
+    }
+    loadData()
   }, [])
 
   const activos = pacientes.filter(p => p.estado === 'activo').length

@@ -95,13 +95,51 @@ export default function PortalDashboard() {
 
         setPaciente(paciente)
 
-        const mins = minutasStorage.getByPaciente(session.paciente_id)
-        setMinuta(mins.find(m => m.activa) || mins[0] || null)
-        setAntrop(antropometriaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
-        setBioimpedancia(bioimpedanciaStorage.getByPaciente(session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
-        setConsultas(consultasStorage.getByPaciente(session.paciente_id))
-        setNotas(notasStorage.getByPaciente(session.paciente_id).filter(n => n.tipo === 'paciente').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
-        setCitas(citasStorage.getAll().filter(c => c.paciente_id === session.paciente_id).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
+        const { data: planes } = await supabase
+          .from('planes')
+          .select('*')
+          .eq('paciente_id', session.paciente_id)
+          .eq('especialidad', 'nutricion')
+          .order('fecha_inicio', { ascending: false })
+
+        const mins = (planes || []) as any[]
+        setMinuta(mins.find(m => m.activo) || mins[0] || null)
+
+        const { data: antrop } = await supabase
+          .from('mediciones_antropometria')
+          .select('*')
+          .eq('paciente_id', session.paciente_id)
+          .order('fecha', { ascending: false })
+
+        const { data: bio } = await supabase
+          .from('mediciones_bioimpedancia')
+          .select('*')
+          .eq('paciente_id', session.paciente_id)
+          .order('fecha', { ascending: false })
+
+        const { data: consultas } = await supabase
+          .from('consultas')
+          .select('*')
+          .eq('paciente_id', session.paciente_id)
+
+        const { data: notas } = await supabase
+          .from('notas_clinicas')
+          .select('*')
+          .eq('paciente_id', session.paciente_id)
+          .eq('tipo', 'paciente')
+          .order('created_at', { ascending: false })
+
+        const { data: citas } = await supabase
+          .from('citas')
+          .select('*')
+          .eq('paciente_id', session.paciente_id)
+          .order('fecha', { ascending: false })
+
+        setAntrop((antrop || []) as any[])
+        setBioimpedancia((bio || []) as any[])
+        setConsultas((consultas || []) as any[])
+        setNotas((notas || []) as any[])
+        setCitas((citas || []) as any[])
       } catch (err) {
         console.error('Error in portal dashboard:', err)
         logout()

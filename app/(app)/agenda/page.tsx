@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, isToday, addMonths, subMonths, addWeeks, subWeeks, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Calendar, List, Pencil, Trash2, Check, X } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import { citasStorage, pacientesStorage } from '@/lib/storage'
 import { generarId } from '@/lib/utils'
 import type { Cita, EstadoCita, Paciente } from '@/lib/types'
@@ -46,10 +47,41 @@ export default function AgendaPage() {
   const [editando, setEditando] = useState<Cita | null>(null)
   const [form, setForm] = useState(FORM_EMPTY)
 
-  function recargar() { setCitas(citasStorage.getAll()) }
+  async function recargar() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('citas')
+        .select('*')
+        .eq('profesional_id', user.id)
+
+      setCitas((data || []) as Cita[])
+    } catch (err) {
+      console.error('[Load Citas Error]', err)
+    }
+  }
+
   useEffect(() => {
     recargar()
-    setPacientes(pacientesStorage.getAll().filter(p => p.estado === 'activo'))
+    const loadPacientes = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data } = await supabase
+          .from('pacientes')
+          .select('*')
+          .eq('profesional_id', user.id)
+          .eq('estado', 'activo')
+
+        setPacientes((data || []) as Paciente[])
+      } catch (err) {
+        console.error('[Load Pacientes Error]', err)
+      }
+    }
+    loadPacientes()
   }, [])
 
   function openNuevo(fecha?: Date) {
@@ -73,27 +105,54 @@ export default function AgendaPage() {
     setDialogOpen(true)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const cita: Cita = {
-      id: editando?.id || generarId(),
-      ...form,
-      created_at: editando?.created_at || new Date().toISOString(),
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const citaData = {
+        paciente_id: form.paciente_id,
+        profesional_id: user.id,
+        especialidad: 'nutricion',
+        paciente_nombre: form.paciente_nombre,
+        fecha: form.fecha,
+        hora: form.hora,
+        duracion_min: form.duracion_min,
+        motivo: form.motivo,
+        observaciones: form.observaciones,
+        estado: form.estado,
+      }
+
+      if (editando) {
+        await supabase.from('citas').update(citaData).eq('id', editando.id)
+      } else {
+        await supabase.from('citas').insert(citaData)
+      }
+      await recargar()
+      setDialogOpen(false)
+    } catch (err) {
+      console.error('[Save Cita Error]', err)
     }
-    citasStorage.save(cita)
-    recargar()
-    setDialogOpen(false)
   }
 
-  function eliminar(id: string) {
+  async function eliminar(id: string) {
     if (!confirm('¿Eliminar esta cita?')) return
-    citasStorage.delete(id)
-    recargar()
+    try {
+      await supabase.from('citas').delete().eq('id', id)
+      await recargar()
+    } catch (err) {
+      console.error('[Delete Cita Error]', err)
+    }
   }
 
-  function cambiarEstado(cita: Cita, estado: EstadoCita) {
-    citasStorage.save({ ...cita, estado })
-    recargar()
+  async function cambiarEstado(cita: Cita, estado: EstadoCita) {
+    try {
+      await supabase.from('citas').update({ estado }).eq('id', cita.id)
+      await recargar()
+    } catch (err) {
+      console.error('[Update Cita Error]', err)
+    }
   }
 
   const citasDelDia = (d: Date) => citas.filter(c => c.fecha === format(d, 'yyyy-MM-dd'))
