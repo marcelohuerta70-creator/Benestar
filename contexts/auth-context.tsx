@@ -60,35 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
     }
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
-    if (authError) throw authError
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, nombre, profesion }),
+    })
 
-    const userId = authData.user?.id
-    if (!userId) throw new Error('No user ID returned')
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error || 'Signup failed')
+    }
 
-    // Crear usuario en tabla usuarios
-    const { error: usuarioError } = await supabase
-      .from('usuarios')
-      .insert({
-        id: userId,
-        email,
-        nombre,
-        plan_suscripcion: 'free',
-        estado: 'activo',
-      })
-
-    if (usuarioError && !usuarioError.message.includes('duplicate')) throw usuarioError
-
-    // Crear perfil profesional
-    const { error: profileError } = await supabase
-      .from('perfil_profesional')
-      .insert({
-        usuario_id: userId,
-        nombre,
-        profesion,
-      })
-
-    if (profileError && !profileError.message.includes('duplicate')) throw profileError
+    const data = await res.json()
 
     const newSession: NutricionistaSession = {
       nombre,
