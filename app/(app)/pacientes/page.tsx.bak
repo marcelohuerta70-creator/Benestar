@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, UserCircle, Trash2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { pacientesStorage, consultasStorage, antropometriaStorage, bioimpedanciaStorage, examenesStorage, minutasStorage, suplementosStorage, medicamentosStorage, notasStorage } from '@/lib/storage'
 import { calcularEdad, formatFechaCorta } from '@/lib/utils'
 import type { Paciente, EstadoPaciente } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -24,43 +24,22 @@ export default function PacientesPage() {
   const [filtroEstado, setFiltroEstado] = useState<EstadoPaciente | 'todos'>('activo')
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  async function recargar() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from('pacientes')
-        .select('*')
-        .eq('profesional_id', user.id)
-        .order('nombre_completo')
-
-      if (error) {
-        console.error('[Load Pacientes Error]', error)
-        return
-      }
-
-      setPacientes(data || [])
-    } catch (err) {
-      console.error('[Load Error]', err)
-    }
+  function recargar() {
+    setPacientes(pacientesStorage.getAll())
   }
 
-  async function eliminarPaciente(pacienteId: string, nombrePaciente: string) {
+  function eliminarPaciente(pacienteId: string, nombrePaciente: string) {
     if (!confirm(`¿Estás seguro que deseas eliminar a ${nombrePaciente}? Esta acción no se puede deshacer.`)) return
-    
-    try {
-      const { error } = await supabase
-        .from('pacientes')
-        .delete()
-        .eq('id', pacienteId)
-
-      if (error) throw error
-      recargar()
-    } catch (err) {
-      console.error('[Delete Error]', err)
-      alert('Error al eliminar paciente')
-    }
+    pacientesStorage.delete(pacienteId)
+    consultasStorage.getByPaciente(pacienteId).forEach(c => consultasStorage.delete(c.id))
+    antropometriaStorage.getByPaciente(pacienteId).forEach(a => antropometriaStorage.delete(a.id))
+    bioimpedanciaStorage.getByPaciente(pacienteId).forEach(b => bioimpedanciaStorage.delete(b.id))
+    examenesStorage.getByPaciente(pacienteId).forEach(e => examenesStorage.delete(e.id))
+    minutasStorage.getByPaciente(pacienteId).forEach(m => minutasStorage.delete(m.id))
+    suplementosStorage.getByPaciente(pacienteId).forEach(s => suplementosStorage.delete(s.id))
+    medicamentosStorage.getByPaciente(pacienteId).forEach(m => medicamentosStorage.delete(m.id))
+    notasStorage.getByPaciente(pacienteId).forEach(n => notasStorage.delete(n.id))
+    recargar()
   }
 
   useEffect(() => { recargar() }, [])
