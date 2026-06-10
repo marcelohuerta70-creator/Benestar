@@ -44,6 +44,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
     notas_generales: '',
     contraseña: '',
   })
+  const [errorMsg, setErrorMsg] = useState('')
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -51,22 +52,24 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setErrorMsg('')
+
     if (!form.nombre_completo || !form.rut || !form.fecha_nacimiento || !form.sexo || !form.objetivo || !form.contraseña) {
-      alert('Completa todos los campos, incluyendo la contraseña del paciente')
+      setErrorMsg('Completa todos los campos, incluyendo la contraseña del paciente')
       return
     }
 
     try {
       const session = sessionStorage.get()
       if (!session) {
-        alert('No hay sesión activa')
+        setErrorMsg('No hay sesión activa')
         return
       }
 
       // Obtener el usuario_id desde Supabase Auth
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        alert('Error: No hay usuario autenticado')
+        setErrorMsg('Error: No hay usuario autenticado')
         return
       }
 
@@ -95,7 +98,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
 
       if (pacienteError) {
         console.error('[Paciente Error]', pacienteError)
-        alert('Error al crear paciente: ' + pacienteError.message)
+        setErrorMsg('Error al crear paciente: ' + pacienteError.message)
         return
       }
 
@@ -117,7 +120,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
       onCreated()
     } catch (err) {
       console.error('[Create Patient Error]', err)
-      alert('Error al crear paciente: ' + (err instanceof Error ? err.message : 'Desconocido'))
+      setErrorMsg('Error al crear paciente: ' + (err instanceof Error ? err.message : 'Desconocido'))
     }
   }
 
@@ -130,6 +133,15 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <span className="text-red-600 text-xs">!</span>
+              </div>
+              <p className="text-xs text-red-700 flex-1">{errorMsg}</p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nombre">Nombre completo *</Label>
             <Input id="nombre" placeholder="María González Riquelme" value={form.nombre_completo} onChange={e => update('nombre_completo', e.target.value)} required />
