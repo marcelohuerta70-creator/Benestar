@@ -226,6 +226,7 @@ export function FichaControles({ pacienteId }: Props) {
             hora: (form as any).proxima_cita_hora,
             estado: 'programada',
             motivo: 'Seguimiento nutricional',
+            especialidad: 'nutricion',
           })
           if (citaError) {
             console.error('[Cita Insert Error]', citaError)
