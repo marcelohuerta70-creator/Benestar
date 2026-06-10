@@ -52,6 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signup(email: string, password: string, nombre: string, profesion: string) {
+    // Limpiar datos viejos antes de crear nueva cuenta
+    if (typeof window !== 'undefined') {
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.startsWith('nutris_')) localStorage.removeItem(key)
+      })
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
     if (authError) throw authError
 
@@ -82,6 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     await supabase.auth.signOut().catch(() => {})
+    // Limpiar TODOS los datos del profesional de localStorage
+    if (typeof window !== 'undefined') {
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.startsWith('nutris_')) localStorage.removeItem(key)
+      })
+    }
     storage.clear()
     setSession(null)
     router.push('/login')
