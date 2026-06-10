@@ -277,35 +277,41 @@ export function FichaControles({ pacienteId }: Props) {
         }
       }
 
-      // Guardar bioimpedancia si se registró
-      if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
-        const bioData: any = {
-          paciente_id: pacienteId,
-          fecha: form.fecha,
-        }
+      // Guardar bioimpedancia solo si hay datos
+      if (incluirBio && incluirMediciones) {
+        // Verificar que hay al menos UN campo de bioimpedancia
+        const tieneDatos = formBio.masa_grasa_kg || formBio.masa_grasa_pct || formBio.agua_corporal_pct ||
+                          formBio.masa_magra_kg || formBio.metabolismo_basal_kcal
 
-        // Agregar campos opcionales solo si tienen valor
-        if (formBio.masa_grasa_kg) bioData.masa_grasa_kg = n(formBio.masa_grasa_kg)
-        if (formBio.masa_grasa_pct) bioData.masa_grasa_pct = n(formBio.masa_grasa_pct)
-        if (formBio.masa_magra_kg) bioData.masa_magra_kg = n(formBio.masa_magra_kg)
-        if (formBio.masa_libre_grasa) bioData.masa_libre_grasa_kg = n(formBio.masa_libre_grasa)
-        if (formBio.agua_corporal_lt) bioData.agua_corporal_lt = n(formBio.agua_corporal_lt)
-        if (formBio.agua_corporal_pct) bioData.agua_corporal_pct = n(formBio.agua_corporal_pct)
-        if (formBio.grasa_visceral) bioData.grasa_visceral = n(formBio.grasa_visceral)
-        if (formBio.proteina_corporal) bioData.proteina_corporal_kg = n(formBio.proteina_corporal)
-        if (formBio.masa_osea) bioData.masa_osea_kg = n(formBio.masa_osea)
-        if (formBio.metabolismo_basal_kcal) bioData.metabolismo_basal_kcal = Math.round(n(formBio.metabolismo_basal_kcal) || 0)
-        if (formBio.edad_metabolica) bioData.edad_metabolica = Math.round(n(formBio.edad_metabolica) || 0)
-        if (formBio.seg_brazo_izq) bioData.seg_brazo_izq = n(formBio.seg_brazo_izq)
-        if (formBio.seg_brazo_der) bioData.seg_brazo_der = n(formBio.seg_brazo_der)
-        if (formBio.seg_tronco) bioData.seg_tronco = n(formBio.seg_tronco)
-        if (formBio.seg_pierna_izq) bioData.seg_pierna_izq = n(formBio.seg_pierna_izq)
-        if (formBio.seg_pierna_der) bioData.seg_pierna_der = n(formBio.seg_pierna_der)
+        if (tieneDatos) {
+          const bioData: any = {
+            paciente_id: pacienteId,
+            fecha: form.fecha,
+          }
 
-        const { error: bioError } = await supabase.from('mediciones_bioimpedancia').insert(bioData)
-        if (bioError) {
-          console.error('[Insert Bio Error]', bioError)
-          alert('Error bio: ' + bioError.message)
+          // Agregar campos opcionales solo si tienen valor
+          if (formBio.masa_grasa_kg) bioData.masa_grasa_kg = n(formBio.masa_grasa_kg)
+          if (formBio.masa_grasa_pct) bioData.masa_grasa_pct = n(formBio.masa_grasa_pct)
+          if (formBio.masa_magra_kg) bioData.masa_magra_kg = n(formBio.masa_magra_kg)
+          if (formBio.masa_libre_grasa) bioData.masa_libre_grasa_kg = n(formBio.masa_libre_grasa)
+          if (formBio.agua_corporal_lt) bioData.agua_corporal_lt = n(formBio.agua_corporal_lt)
+          if (formBio.agua_corporal_pct) bioData.agua_corporal_pct = n(formBio.agua_corporal_pct)
+          if (formBio.grasa_visceral) bioData.grasa_visceral = n(formBio.grasa_visceral)
+          if (formBio.proteina_corporal) bioData.proteina_corporal_kg = n(formBio.proteina_corporal)
+          if (formBio.masa_osea) bioData.masa_osea_kg = n(formBio.masa_osea)
+          if (formBio.metabolismo_basal_kcal) bioData.metabolismo_basal_kcal = Math.round(n(formBio.metabolismo_basal_kcal) || 0)
+          if (formBio.edad_metabolica) bioData.edad_metabolica = Math.round(n(formBio.edad_metabolica) || 0)
+          if (formBio.seg_brazo_izq) bioData.seg_brazo_izq = n(formBio.seg_brazo_izq)
+          if (formBio.seg_brazo_der) bioData.seg_brazo_der = n(formBio.seg_brazo_der)
+          if (formBio.seg_tronco) bioData.seg_tronco = n(formBio.seg_tronco)
+          if (formBio.seg_pierna_izq) bioData.seg_pierna_izq = n(formBio.seg_pierna_izq)
+          if (formBio.seg_pierna_der) bioData.seg_pierna_der = n(formBio.seg_pierna_der)
+
+          const { error: bioError } = await supabase.from('mediciones_bioimpedancia').insert(bioData)
+          if (bioError) {
+            console.error('[Insert Bio Error]', bioError)
+            alert('Error bio: ' + bioError.message)
+          }
         }
       }
 
