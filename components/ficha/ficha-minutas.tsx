@@ -125,7 +125,6 @@ export function FichaMinutas({ pacienteId }: Props) {
           .map(m => supabase.from('planes').update({ activo: false }).eq('id', m.id)))
       }
       const planData = {
-        id: editando?.id || generarId(),
         paciente_id: pacienteId,
         especialidad: 'nutricion',
         titulo: form.titulo,

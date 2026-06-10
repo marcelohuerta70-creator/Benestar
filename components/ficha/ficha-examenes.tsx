@@ -62,7 +62,6 @@ export function FichaExamenes({ pacienteId }: Props) {
     if (!form.tipo) return
     try {
       const examData = {
-        id: editando?.id || generarId(),
         paciente_id: pacienteId,
         especialidad: 'nutricion',
         fecha: form.fecha,

@@ -68,7 +68,6 @@ export function FichaNotas({ pacienteId }: Props) {
     if (!form.contenido) return
     try {
       const notaData = {
-        id: editando?.id || generarId(),
         paciente_id: pacienteId,
         especialidad: 'nutricion',
         tipo: form.tipo,

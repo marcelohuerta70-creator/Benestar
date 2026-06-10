@@ -174,11 +174,7 @@ export function FichaControles({ pacienteId }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     try {
-      const consultaId = editando?.id || generarId()
-
-      // Guardar/actualizar consulta en Supabase
       const consultaData = {
-        id: consultaId,
         paciente_id: pacienteId,
         especialidad: 'nutricion',
         fecha: form.fecha,
@@ -195,7 +191,7 @@ export function FichaControles({ pacienteId }: Props) {
       }
 
       if (editando) {
-        await supabase.from('consultas').update(consultaData).eq('id', consultaId)
+        await supabase.from('consultas').update(consultaData).eq('id', editando.id)
       } else {
         await supabase.from('consultas').insert(consultaData)
       }
@@ -209,9 +205,8 @@ export function FichaControles({ pacienteId }: Props) {
         const imc = calcularIMC(peso, talla)
 
         const antropData = {
-          id: generarId(),
           paciente_id: pacienteId,
-          consulta_id: consultaId,
+          consulta_id: editando?.id || null,
           fecha: form.fecha,
           peso_kg: peso,
           talla_cm: talla,
@@ -228,9 +223,8 @@ export function FichaControles({ pacienteId }: Props) {
       // Guardar bioimpedancia si se registró
       if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
         const bioData = {
-          id: generarId(),
           paciente_id: pacienteId,
-          consulta_id: consultaId,
+          consulta_id: editando?.id || null,
           fecha: form.fecha,
           masa_grasa_kg: n(formBio.masa_grasa_kg) || 0,
           masa_grasa_pct: n(formBio.masa_grasa_pct) || 0,
