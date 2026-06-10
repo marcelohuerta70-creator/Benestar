@@ -198,30 +198,39 @@ export function FichaControles({ pacienteId }: Props) {
       let consultaId: string
       if (editando) {
         consultaId = editando.id
-        await supabase.from('consultas').update(consultaData).eq('id', editando.id)
+        const { error: updateError } = await supabase.from('consultas').update(consultaData).eq('id', editando.id)
+        if (updateError) {
+          console.error('[Update Consulta Error]', updateError)
+          alert('Error al guardar: ' + updateError.message)
+          return
+        }
       } else {
-        const { data: inserted } = await supabase.from('consultas').insert(consultaData).select().single()
+        const { data: inserted, error: insertError } = await supabase.from('consultas').insert(consultaData).select().single()
+        if (insertError) {
+          console.error('[Insert Consulta Error]', insertError)
+          alert('Error al guardar: ' + insertError.message)
+          return
+        }
         consultaId = inserted?.id || generarId()
       }
 
       // Crear cita automática si hay próxima fecha y hora
       if (form.proxima_cita && (form as any).proxima_cita_hora && !editando) {
-        const { data: { user } } = await supabase.auth.getUser()
         const { data: paciente } = await supabase.from('pacientes').select('nombre_completo').eq('id', pacienteId).single()
 
-        if (user && paciente) {
-          await supabase.from('citas').insert({
+        if (paciente) {
+          const { error: citaError } = await supabase.from('citas').insert({
             paciente_id: pacienteId,
             profesional_id: user.id,
-            especialidad: 'nutricion',
-            paciente_nombre: paciente.nombre_completo,
             fecha: form.proxima_cita,
             hora: (form as any).proxima_cita_hora,
-            duracion_min: 60,
-            motivo: 'Seguimiento nutricional',
-            observaciones: '',
             estado: 'programada',
+            motivo: 'Seguimiento nutricional',
+            paciente_nombre: paciente.nombre_completo,
+            duracion_min: 60,
+            observaciones: '',
           })
+          if (citaError) console.error('[Cita Insert Error]', citaError)
         }
       }
 

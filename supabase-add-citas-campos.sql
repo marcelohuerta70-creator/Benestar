@@ -1,0 +1,12 @@
+-- AGREGAR CAMPOS FALTANTES A CITAS
+-- ==================================
+
+ALTER TABLE citas ADD COLUMN IF NOT EXISTS paciente_nombre VARCHAR(255);
+ALTER TABLE citas ADD COLUMN IF NOT EXISTS duracion_min INT DEFAULT 60;
+ALTER TABLE citas ADD COLUMN IF NOT EXISTS observaciones TEXT;
+
+-- AGREGAR CAMPOS FALTANTES A SUPLEMENTOS
+ALTER TABLE suplementos ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+
+-- Confirmación
+SELECT 'Campos agregados a citas' AS resultado;
