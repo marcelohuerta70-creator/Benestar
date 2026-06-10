@@ -38,15 +38,23 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
   async function login(rut: string, password: string): Promise<{ ok: boolean; error?: string; especialidades?: Especialidad[] }> {
     try {
-      // Normalizar RUT
-      const rutNorm = rut.replace(/\./g, '').trim().toUpperCase()
+      // Normalizar RUT (eliminar puntos y guiones)
+      const rutNorm = rut.replace(/\./g, '').replace(/-/g, '').trim().toUpperCase()
 
-      // Buscar paciente en Supabase por RUT
-      const { data: paciente, error: pacienteError } = await supabase
+      // Buscar paciente en Supabase por RUT (búsqueda flexible)
+      const { data: pacientes, error: pacienteError } = await supabase
         .from('pacientes')
         .select('id, nombre_completo, rut, "contraseña_hash"')
-        .eq('rut', rutNorm)
-        .single()
+
+      if (pacienteError || !pacientes) {
+        return { ok: false, error: 'Error al obtener pacientes' }
+      }
+
+      // Buscar paciente por RUT normalizado
+      const paciente = pacientes.find(p => {
+        const pRutNorm = p.rut.replace(/\./g, '').replace(/-/g, '').trim().toUpperCase()
+        return pRutNorm === rutNorm
+      })
 
       if (pacienteError || !paciente) {
         return { ok: false, error: 'RUT no encontrado. Verifica con tu nutricionista.' }
