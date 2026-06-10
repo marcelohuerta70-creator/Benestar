@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(`Missing Supabase env vars. URL: ${supabaseUrl ? 'OK' : 'MISSING'}, Key: ${supabaseAnonKey ? 'OK' : 'MISSING'}`)
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sydlfdrawiesxleyjhbq.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UUvC1VFeqo334FIj1DXAYQ_g7kJ13Fq'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
