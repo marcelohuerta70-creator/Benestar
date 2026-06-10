@@ -2,9 +2,10 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { pacientesStorage, portalSessionStorage, pacienteProfesionalStorage, isSeeded } from '@/lib/storage'
+import { pacientesStorage, portalSessionStorage, pacienteProfesionalStorage, isSeeded, clearSeeded } from '@/lib/storage'
 import { seedDemoData } from '@/lib/seed-data'
 import type { PortalSession, Especialidad } from '@/lib/types'
+import bcryptjs from 'bcryptjs'
 
 interface PortalAuthContextType {
   session: PortalSession | null
@@ -53,8 +54,9 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: 'RUT no encontrado. Verifica con tu nutricionista.' }
     }
 
-    // Validar contraseña contra contraseña_hash del paciente
-    if (password !== (paciente.contraseña_hash || '')) {
+    // Validar contraseña con bcryptjs
+    const passwordMatch = bcryptjs.compareSync(password, paciente.contraseña_hash || '')
+    if (!passwordMatch) {
       return { ok: false, error: 'Contraseña incorrecta.' }
     }
 
@@ -88,6 +90,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     portalSessionStorage.clear()
+    clearSeeded()
     setSession(null)
     setEspecialidades([])
     router.push('/portal/login')

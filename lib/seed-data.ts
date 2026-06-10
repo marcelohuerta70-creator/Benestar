@@ -3,6 +3,10 @@ import {
   pacientesStorage, consultasStorage, antropometriaStorage,
   bioimpedanciaStorage, examenesStorage, minutasStorage, suplementosStorage, pacienteProfesionalStorage, markSeeded
 } from './storage'
+import bcryptjs from 'bcryptjs'
+
+// Pre-hashed passwords for demo (salt rounds: 10, password: 'benestar123')
+const DEMO_PASSWORD_HASH = '$2b$10$Pxd7LpT/tyxSW97fTSaZQOq2LuOeGy0M5zRY/7VfrfB4NEGwQAge6'
 
 export function seedDemoData() {
   const pacientes: Paciente[] = [
@@ -19,7 +23,7 @@ export function seedDemoData() {
       estado: 'activo',
       portal_activo: true,
       created_at: '2026-01-10T10:00:00Z',
-      contraseña_hash: 'benestar123',
+      contraseña_hash: DEMO_PASSWORD_HASH,
     },
     {
       id: 'p2',
@@ -34,7 +38,7 @@ export function seedDemoData() {
       estado: 'activo',
       portal_activo: true,
       created_at: '2026-01-15T10:00:00Z',
-      contraseña_hash: 'benestar123',
+      contraseña_hash: DEMO_PASSWORD_HASH,
     },
     {
       id: 'p3',
@@ -49,7 +53,7 @@ export function seedDemoData() {
       estado: 'activo',
       portal_activo: true,
       created_at: '2026-02-01T10:00:00Z',
-      contraseña_hash: 'benestar123',
+      contraseña_hash: DEMO_PASSWORD_HASH,
     },
     {
       id: 'p4',
@@ -64,7 +68,7 @@ export function seedDemoData() {
       estado: 'activo',
       portal_activo: true,
       created_at: '2026-02-10T10:00:00Z',
-      contraseña_hash: 'benestar123',
+      contraseña_hash: DEMO_PASSWORD_HASH,
     },
   ]
 

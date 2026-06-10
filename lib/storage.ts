@@ -212,3 +212,7 @@ export const markSeeded = () => {
   if (typeof window === 'undefined') return
   localStorage.setItem(KEYS.seeded, 'true')
 }
+export const clearSeeded = () => {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(KEYS.seeded)
+}

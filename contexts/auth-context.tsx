@@ -30,87 +30,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(email: string, password: string) {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
 
-      const { data: perfil } = await supabase
-        .from('perfil_profesional')
-        .select('nombre, profesion')
-        .eq('usuario_id', data.user.id)
-        .single()
+    const { data: perfil } = await supabase
+      .from('perfil_profesional')
+      .select('nombre, profesion')
+      .eq('usuario_id', data.user.id)
+      .single()
 
-      const newSession: NutricionistaSession = {
-        nombre: perfil?.nombre || email,
-        email: data.user.email || email,
-        especialidad: perfil?.profesion || 'Nutrición Clínica',
-        plan: 'pro',
-      }
-
-      storage.set(newSession)
-      setSession(newSession)
-      router.push('/dashboard')
-    } catch (err) {
-      // Fallback a demo si Supabase falla
-      const nombre = email.split('@')[0]
-        .split('.')
-        .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-        .join(' ')
-
-      const newSession: NutricionistaSession = {
-        nombre: nombre || 'Profesional Demo',
-        email,
-        especialidad: 'Nutrición Clínica',
-        plan: 'pro',
-      }
-
-      storage.set(newSession)
-      setSession(newSession)
-      router.push('/dashboard')
+    const newSession: NutricionistaSession = {
+      nombre: perfil?.nombre || email,
+      email: data.user.email || email,
+      especialidad: perfil?.profesion || 'Nutrición Clínica',
+      plan: 'pro',
     }
+
+    storage.set(newSession)
+    setSession(newSession)
+    router.push('/dashboard')
   }
 
   async function signup(email: string, password: string, nombre: string, profesion: string) {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
-      if (authError) throw authError
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
+    if (authError) throw authError
 
-      const userId = authData.user?.id
-      if (!userId) throw new Error('No user ID returned')
+    const userId = authData.user?.id
+    if (!userId) throw new Error('No user ID returned')
 
-      const { error: profileError } = await supabase
-        .from('perfil_profesional')
-        .insert({
-          usuario_id: userId,
-          nombre,
-          profesion,
-        })
-
-      if (profileError) throw profileError
-
-      const newSession: NutricionistaSession = {
+    const { error: profileError } = await supabase
+      .from('perfil_profesional')
+      .insert({
+        usuario_id: userId,
         nombre,
-        email,
-        especialidad: profesion,
-        plan: 'free',
-      }
+        profesion,
+      })
 
-      storage.set(newSession)
-      setSession(newSession)
-      router.push('/dashboard')
-    } catch (err) {
-      // Fallback a cuenta local sin demo data si hay error
-      const newSession: NutricionistaSession = {
-        nombre,
-        email,
-        especialidad: profesion,
-        plan: 'free',
-      }
+    if (profileError) throw profileError
 
-      storage.set(newSession)
-      setSession(newSession)
-      router.push('/dashboard')
+    const newSession: NutricionistaSession = {
+      nombre,
+      email,
+      especialidad: profesion,
+      plan: 'free',
     }
+
+    storage.set(newSession)
+    setSession(newSession)
+    router.push('/dashboard')
   }
 
   async function logout() {
