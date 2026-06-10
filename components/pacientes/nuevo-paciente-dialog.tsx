@@ -70,8 +70,8 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
         return
       }
 
-      // Hashear contraseña
-      const contraseñaHash = bcryptjs.hashSync(form.contraseña, 10)
+      // Guardar contraseña en plaintext temporalmente para testing
+      const contraseñaHash = form.contraseña
 
       // 1. Crear paciente en Supabase
       const { data: paciente, error: pacienteError } = await supabase

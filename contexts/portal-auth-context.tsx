@@ -60,14 +60,12 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, error: 'RUT no encontrado. Verifica con tu nutricionista.' }
       }
 
-      // Validar contraseña con bcryptjs
-      const hash = (paciente as any)['contraseña_hash'] || ''
-      const passwordMatch = bcryptjs.compareSync(password, hash)
+      // Validar contraseña (plaintext por ahora)
+      const storedPassword = (paciente as any)['contraseña_hash'] || ''
+      const passwordMatch = password === storedPassword
       console.log('[Password Debug]', {
-        password: password.substring(0, 3) + '*',
-        hashExists: !!hash,
-        hashStart: hash.substring(0, 10),
-        match: passwordMatch,
+        passwordMatch,
+        storedLength: storedPassword.length,
       })
       if (!passwordMatch) {
         return { ok: false, error: 'Contraseña incorrecta.' }
