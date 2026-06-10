@@ -23,17 +23,24 @@ export default function PortalLoginPage() {
     if (!rut || !password) { setError('Ingresa tu RUT y contraseña.'); return }
     setError('')
     setLoading(true)
-    const result = await login(rut, password)
-    if (result.ok) {
-      if (result.especialidades && result.especialidades.length > 1) {
-        router.push('/portal/especialidades')
-      } else if (result.especialidades && result.especialidades.length === 1) {
-        router.push('/portal/dashboard')
+    try {
+      const result = await login(rut, password)
+      if (result.ok && result.especialidades && result.especialidades.length > 0) {
+        if (result.especialidades.length > 1) {
+          router.push('/portal/especialidades')
+        } else {
+          router.push('/portal/dashboard')
+        }
+      } else {
+        setError(result.error || 'Error al iniciar sesión. Intenta de nuevo.')
+        console.error('[Login Debug]', result)
       }
-    } else {
-      setError(result.error || 'Error al iniciar sesión.')
+    } catch (err) {
+      setError('Error inesperado. Intenta de nuevo.')
+      console.error('[Login Error]', err)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
