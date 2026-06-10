@@ -184,6 +184,14 @@ export function FichaControles({ pacienteId }: Props) {
         paciente_id: pacienteId,
         profesional_id: user.id,
         fecha: form.fecha,
+        tipo_consulta: form.tipo_consulta || null,
+        adherencia: form.adherencia || null,
+        cambios_observados: form.cambios_observados || null,
+        dificultades_reportadas: form.dificultades_reportadas || null,
+        observaciones_clinicas: form.observaciones_clinicas || null,
+        diagnostico_nutricional: form.diagnostico_nutricional || null,
+        indicaciones: form.indicaciones || null,
+        objetivos_proximo_control: form.objetivos_proximo_control || null,
         nota_para_paciente: form.nota_para_paciente || null,
       }
 

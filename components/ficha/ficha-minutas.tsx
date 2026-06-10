@@ -134,6 +134,7 @@ export function FichaMinutas({ pacienteId }: Props) {
         paciente_id: pacienteId,
         profesional_id: user.id,
         especialidad: 'nutricion',
+        titulo: form.titulo,
         fecha_inicio: form.fecha_inicio || null,
         fecha_fin: form.fecha_fin || null,
         estructura: form.estructura,
