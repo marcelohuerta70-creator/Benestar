@@ -193,6 +193,8 @@ export function FichaControles({ pacienteId }: Props) {
         indicaciones: form.indicaciones || null,
         objetivos_proximo_control: form.objetivos_proximo_control || null,
         nota_para_paciente: form.nota_para_paciente || null,
+        adjuntos: form.adjuntos.length > 0 ? form.adjuntos.map(a => a.nombre) : null,
+        archivos_urls: form.adjuntos.length > 0 ? form.adjuntos.map(a => a.url) : null,
       }
 
       let consultaId: string
@@ -243,7 +245,6 @@ export function FichaControles({ pacienteId }: Props) {
 
         const antropData: any = {
           paciente_id: pacienteId,
-          profesional_id: user.id,
           fecha: form.fecha,
           peso_kg: peso,
           talla_cm: talla,
@@ -280,7 +281,6 @@ export function FichaControles({ pacienteId }: Props) {
       if (incluirBio && incluirMediciones && formBio.masa_grasa_kg) {
         const bioData: any = {
           paciente_id: pacienteId,
-          profesional_id: user.id,
           fecha: form.fecha,
         }
 
