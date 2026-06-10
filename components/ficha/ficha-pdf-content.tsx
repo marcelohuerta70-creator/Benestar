@@ -75,7 +75,7 @@ export function FichaPDFContent({ paciente, perfil, primeraAntrop, medicamentos 
           {paciente.antecedentes_familiares && <Field label="Antecedentes familiares" value={paciente.antecedentes_familiares} />}
           {paciente.cirugias_previas && <Field label="Cirugías previas" value={paciente.cirugias_previas} />}
           {paciente.observaciones_clinicas && <Field label="Observaciones clínicas" value={paciente.observaciones_clinicas} />}
-          {paciente.observaciones_clinicas_libres && <Field label="Notas clínicas libres" value={paciente.observaciones_clinicas_libres} />}
+          {paciente.notas_clinica && <Field label="Notas clínicas libres" value={paciente.notas_clinica} />}
 
           {medicamentos.length > 0 && (
             <div>
@@ -102,7 +102,7 @@ export function FichaPDFContent({ paciente, perfil, primeraAntrop, medicamentos 
             {paciente.habito_tabaco && <Field label="Tabaco" value={paciente.habito_tabaco} />}
             {paciente.habito_drogas && <Field label="Otras sustancias" value={paciente.habito_drogas} />}
           </TwoColumnGrid>
-          {paciente.habitos_libres && <Field label="Notas libres" value={paciente.habitos_libres} />}
+          {paciente.notas_habitos && <Field label="Notas libres" value={paciente.notas_habitos} />}
         </div>
       </Section>
 
@@ -115,7 +115,7 @@ export function FichaPDFContent({ paciente, perfil, primeraAntrop, medicamentos 
           {paciente.alergias_alimentarias && <Field label="Alergias alimentarias" value={paciente.alergias_alimentarias} />}
           {paciente.alimentos_no_consume && <Field label="Alimentos que no consume" value={paciente.alimentos_no_consume} />}
           {paciente.suplementos_habituales && <Field label="Suplementos habituales" value={paciente.suplementos_habituales} />}
-          {paciente.alimentacion_libres && <Field label="Notas libres" value={paciente.alimentacion_libres} />}
+          {paciente.notas_alimentacion && <Field label="Notas libres" value={paciente.notas_alimentacion} />}
         </div>
       </Section>
 
