@@ -63,11 +63,16 @@ export function FichaMinutas({ pacienteId }: Props) {
         .eq('especialidad', 'nutricion')
         .order('fecha_inicio', { ascending: false })
 
-      const { data: supData } = await supabase
-        .from('suplementos')
-        .select('*')
-        .eq('paciente_id', pacienteId)
-        .catch(() => ({ data: [] }))
+      let supData: Suplemento[] = []
+      try {
+        const { data } = await supabase
+          .from('suplementos')
+          .select('*')
+          .eq('paciente_id', pacienteId)
+        supData = (data || []) as Suplemento[]
+      } catch (err) {
+        console.error('[Load Suplementos Error]', err)
+      }
 
       const minutas = (planData as any[] || []).map(p => ({
         ...p,
@@ -75,7 +80,7 @@ export function FichaMinutas({ pacienteId }: Props) {
         estructura: p.estructura || MINUTA_VACIA,
       })) as Minuta[]
       setMinutas(minutas)
-      setSuplementos((supData || []) as Suplemento[])
+      setSuplementos(supData)
     } catch (err) {
       console.error('[Load Minutas Error]', err)
     }
