@@ -90,7 +90,7 @@ export function NuevoPacienteDialog({ open, onOpenChange, onCreated }: Props) {
           objetivo: form.objetivo,
           notas_generales: form.notas_generales,
           estado: 'activo',
-          portal_activo: false,
+          portal_activo: true,
           contraseña_hash: contraseñaHash,
         })
         .select()

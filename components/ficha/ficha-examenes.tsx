@@ -61,9 +61,12 @@ export function FichaExamenes({ pacienteId }: Props) {
     ev.preventDefault()
     if (!form.tipo) return
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
       const examData = {
         paciente_id: pacienteId,
-        especialidad: 'nutricion',
+        profesional_id: user.id,
         fecha: form.fecha,
         tipo: form.tipo,
         resultado: form.resultado || null,
