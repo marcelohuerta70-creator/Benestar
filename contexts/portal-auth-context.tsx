@@ -38,64 +38,27 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
   async function login(rut: string, password: string): Promise<{ ok: boolean; error?: string; especialidades?: Especialidad[] }> {
     try {
-      // Normalizar RUT (eliminar puntos y guiones)
-      const rutNorm = rut.replace(/\./g, '').replace(/-/g, '').trim().toUpperCase()
-
-      // Buscar paciente en Supabase por RUT (búsqueda flexible)
-      const { data: pacientes, error: pacienteError } = await supabase
-        .from('pacientes')
-        .select('id, nombre_completo, rut, "contraseña_hash"')
-
-      if (pacienteError || !pacientes) {
-        return { ok: false, error: 'Error al obtener pacientes' }
-      }
-
-      // Buscar paciente por RUT normalizado
-      const paciente = pacientes.find(p => {
-        const pRutNorm = p.rut.replace(/\./g, '').replace(/-/g, '').trim().toUpperCase()
-        return pRutNorm === rutNorm
+      const res = await fetch('/api/portal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut, password }),
       })
 
-      if (pacienteError || !paciente) {
-        return { ok: false, error: 'RUT no encontrado. Verifica con tu nutricionista.' }
-      }
+      const result = await res.json()
 
-      // Validar contraseña (plaintext por ahora)
-      const storedPassword = (paciente as any)['contraseña_hash'] || ''
-      const passwordMatch = password === storedPassword
-      console.log('[Password Debug]', {
-        passwordMatch,
-        storedLength: storedPassword.length,
-      })
-      if (!passwordMatch) {
-        return { ok: false, error: 'Contraseña incorrecta.' }
-      }
-
-      // Obtener especialidades del paciente desde paciente_profesional
-      const { data: pacienteProfs, error: profsError } = await supabase
-        .from('paciente_profesional')
-        .select('especialidad')
-        .eq('paciente_id', paciente.id)
-
-      if (profsError) {
-        return { ok: false, error: 'Error al obtener especialidades.' }
-      }
-
-      const esps = [...new Set(pacienteProfs.map(pp => pp.especialidad))] as Especialidad[]
-
-      if (esps.length === 0) {
-        return { ok: false, error: 'No hay especialidades asociadas a este RUT.' }
+      if (!result.ok) {
+        return { ok: false, error: result.error }
       }
 
       const newSession: PortalSession = {
-        paciente_id: paciente.id,
-        rut: paciente.rut,
-        nombre: paciente.nombre_completo,
+        paciente_id: result.paciente.id,
+        rut: result.paciente.rut,
+        nombre: result.paciente.nombre_completo,
       }
       portalSessionStorage.set(newSession)
       setSession(newSession)
-      setEspecialidades(esps)
-      return { ok: true, especialidades: esps }
+      setEspecialidades(result.especialidades)
+      return { ok: true, especialidades: result.especialidades }
     } catch (err) {
       console.error('[Portal Login Error]', err)
       return { ok: false, error: err instanceof Error ? err.message : 'Error al iniciar sesión' }
