@@ -36,7 +36,15 @@ export default function PortalLoginPage() {
           router.push('/portal/especialidades')
         } else {
           console.log('Navegando a dashboard con especialidad:', result.especialidades[0])
-          selectEspecialidad(result.especialidades[0])
+          // Guardar especialidad en storage y navegar
+          const portalSession = {
+            paciente_id: result.paciente.id,
+            rut: result.paciente.rut,
+            nombre: result.paciente.nombre_completo,
+            especialidad: result.especialidades[0]
+          }
+          localStorage.setItem('portal_session', JSON.stringify(portalSession))
+          router.push('/portal/dashboard')
         }
       } else {
         setError(result.error || 'Error al iniciar sesión. Intenta de nuevo.')
