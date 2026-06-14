@@ -11,7 +11,10 @@ interface PortalAuthContextType {
   session: PortalSession | null
   loading: boolean
   especialidades: Especialidad[]
-  login: (rut: string, password: string) => Promise<{ ok: boolean; error?: string; paciente?: { id: string; rut: string; nombre_completo: string }; especialidades?: Especialidad[] }>
+  login: (rut: string, password: string) => Promise<
+    | { ok: true; paciente: { id: string; rut: string; nombre_completo: string }; especialidades: Especialidad[] }
+    | { ok: false; error: string }
+  >
   selectEspecialidad: (especialidad: Especialidad) => void
   logout: () => void
 }
