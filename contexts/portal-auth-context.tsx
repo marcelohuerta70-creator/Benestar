@@ -11,7 +11,7 @@ interface PortalAuthContextType {
   session: PortalSession | null
   loading: boolean
   especialidades: Especialidad[]
-  login: (rut: string, password: string) => Promise<{ ok: boolean; error?: string; especialidades?: Especialidad[] }>
+  login: (rut: string, password: string) => Promise<{ ok: boolean; error?: string; paciente?: { id: string; rut: string; nombre_completo: string }; especialidades?: Especialidad[] }>
   selectEspecialidad: (especialidad: Especialidad) => void
   logout: () => void
 }
@@ -58,7 +58,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       portalSessionStorage.set(newSession)
       setSession(newSession)
       setEspecialidades(result.especialidades)
-      return { ok: true, especialidades: result.especialidades }
+      return { ok: true, paciente: result.paciente, especialidades: result.especialidades }
     } catch (err) {
       console.error('[Portal Login Error]', err)
       return { ok: false, error: err instanceof Error ? err.message : 'Error al iniciar sesión' }
