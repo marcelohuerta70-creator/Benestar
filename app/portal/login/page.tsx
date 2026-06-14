@@ -27,8 +27,8 @@ export default function PortalLoginPage() {
       const result = await login(rut, password)
       console.log('[Login Result]', {
         ok: result.ok,
-        especialidadesCount: result.especialidades?.length,
-        error: result.error,
+        especialidadesCount: result.ok ? result.especialidades.length : 0,
+        error: !result.ok ? result.error : undefined,
       })
       if (result.ok && result.paciente && result.especialidades && result.especialidades.length > 0) {
         if (result.especialidades.length > 1) {
