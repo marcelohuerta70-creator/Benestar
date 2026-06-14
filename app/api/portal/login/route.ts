@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     // Buscar paciente por RUT (usando service role, sin RLS)
     const { data: pacientes, error } = await supabase
       .from('pacientes')
-      .select('id, nombre_completo, rut, contraseña_hash, portal_activo')
+      .select('id, nombre_completo, rut, contraseña_hash, portal_activo') as any
 
     if (error || !pacientes) {
       console.error('[Portal Login Error]', error)
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Buscar paciente con RUT normalizado
-    const paciente = pacientes.find(p => {
+    const paciente = (pacientes as any[]).find((p: any) => {
       const pRutNorm = p.rut.replace(/\./g, '').replace(/-/g, '').trim().toUpperCase()
       return pRutNorm === rutNorm
     })
