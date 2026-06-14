@@ -30,13 +30,12 @@ export default function PortalLoginPage() {
         especialidadesCount: result.especialidades?.length,
         error: result.error,
       })
-      if (result.ok && result.especialidades && result.especialidades.length > 0) {
+      if (result.ok && result.paciente && result.especialidades && result.especialidades.length > 0) {
         if (result.especialidades.length > 1) {
           console.log('Navegando a especialidades')
           router.push('/portal/especialidades')
         } else {
           console.log('Navegando a dashboard con especialidad:', result.especialidades[0])
-          // Guardar especialidad en storage y navegar
           const portalSession = {
             paciente_id: result.paciente.id,
             rut: result.paciente.rut,
