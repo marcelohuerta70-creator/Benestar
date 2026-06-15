@@ -81,11 +81,9 @@ export default function PortalDashboard() {
 
     const loadPacienteData = async () => {
       try {
-        const { data: paciente, error } = await supabase
-          .from('pacientes')
-          .select('*')
-          .eq('id', session.paciente_id)
-          .single()
+        // Cargar paciente desde API endpoint
+        const res = await fetch(`/api/portal/paciente?pacienteId=${session.paciente_id}`)
+        const { paciente, error } = await res.json()
 
         if (error || !paciente) {
           console.error('Error loading patient:', error)
