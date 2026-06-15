@@ -105,8 +105,8 @@ export default function PortalDashboard() {
         setMinuta(mins.find(m => m.activo) || mins[0] || null)
         console.log('[Minutas Cargadas]', mins.length, 'planes')
 
-        const res = await fetch(`/api/portal/mediciones?pacienteId=${session.paciente_id}`)
-        const { antrop, bio } = await res.json()
+        const medicionesRes = await fetch(`/api/portal/mediciones?pacienteId=${session.paciente_id}`)
+        const { antrop, bio } = await medicionesRes.json()
 
         const { data: consultas } = await supabase
           .from('consultas')
