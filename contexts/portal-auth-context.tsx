@@ -39,7 +39,10 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [router])
 
-  async function login(rut: string, password: string): Promise<{ ok: boolean; error?: string; especialidades?: Especialidad[] }> {
+  async function login(rut: string, password: string): Promise<
+    | { ok: true; paciente: { id: string; rut: string; nombre_completo: string }; especialidades: Especialidad[] }
+    | { ok: false; error: string }
+  > {
     try {
       const res = await fetch('/api/portal/login', {
         method: 'POST',
