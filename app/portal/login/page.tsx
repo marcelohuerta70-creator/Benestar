@@ -30,24 +30,25 @@ export default function PortalLoginPage() {
         especialidadesCount: result.ok ? result.especialidades.length : 0,
         error: !result.ok ? result.error : undefined,
       })
-      if (result.ok && result.paciente && result.especialidades && result.especialidades.length > 0) {
-        if (result.especialidades.length > 1) {
-          console.log('Navegando a especialidades')
-          router.push('/portal/especialidades')
-        } else {
-          console.log('Navegando a dashboard con especialidad:', result.especialidades[0])
-          const portalSession = {
-            paciente_id: result.paciente.id,
-            rut: result.paciente.rut,
-            nombre: result.paciente.nombre_completo,
-            especialidad: result.especialidades[0]
-          }
-          localStorage.setItem('portal_session', JSON.stringify(portalSession))
-          router.push('/portal/dashboard')
-        }
-      } else {
-        setError(result.error || 'Error al iniciar sesión. Intenta de nuevo.')
+      if (!result.ok) {
+        setError(result.error)
         console.error('[Login Debug]', result)
+        return
+      }
+
+      if (result.especialidades.length > 1) {
+        console.log('Navegando a especialidades')
+        router.push('/portal/especialidades')
+      } else {
+        console.log('Navegando a dashboard con especialidad:', result.especialidades[0])
+        const portalSession = {
+          paciente_id: result.paciente.id,
+          rut: result.paciente.rut,
+          nombre: result.paciente.nombre_completo,
+          especialidad: result.especialidades[0]
+        }
+        localStorage.setItem('portal_session', JSON.stringify(portalSession))
+        router.push('/portal/dashboard')
       }
     } catch (err) {
       setError('Error inesperado. Intenta de nuevo.')
